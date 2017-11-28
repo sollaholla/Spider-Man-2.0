@@ -1,5 +1,4 @@
 # Spider-Man-2.0
-GTA V Spider-Man
 If you're going to commit changes, please do them in a seperate branch.
 
 ## Contribution Conditions:
