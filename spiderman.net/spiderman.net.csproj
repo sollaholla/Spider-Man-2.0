@@ -106,9 +106,36 @@
   <ItemGroup>
     <Folder Include="Abilities\WebAttachment\" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Spider-Man Files\hudbg.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\InstantKill.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\Karen Hello.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\Mouse.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\Spider Web.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\spideyhud.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\T.W.P.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Spider-Man Files\Tazer Webs.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>COPY "$(TargetPath)" "C:\Program Files (x86)\Steam\steamapps\common\Grand Theft Auto V\scripts"
-COPY "$(TargetDir)$(TargetName).pdb" "C:\Program Files (x86)\Steam\steamapps\common\Grand Theft Auto V\scripts"</PostBuildEvent>
+COPY "$(TargetDir)$(TargetName).pdb" "C:\Program Files (x86)\Steam\steamapps\common\Grand Theft Auto V\scripts"
+COPY "$(ProjectDir)Spider-Man Files\*.*" "C:\Program Files (x86)\Steam\steamapps\common\Grand Theft Auto V\scripts\Spider-Man Files"</PostBuildEvent>
   </PropertyGroup>
 </Project>
