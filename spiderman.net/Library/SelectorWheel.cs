@@ -395,7 +395,7 @@ namespace SelectorWheel
             if (SelectedCategory.SelectedItem.Description != null)
             {
                 float pixelX = 255f / (float)UI.WIDTH;
-                float pixelY = 50f / (float)UI.HEIGHT;
+                float pixelY = 255f / (float)UI.HEIGHT;
                 UIHelper.DrawCustomText(SelectedCategory.SelectedItem.Description, 0.35f, GTA.Font.ChaletLondon, 
                     255, 255, 255, 255, pixelX, pixelY, UIHelper.TextJustification.Left, true, pixelX, 
                     512 / (float)UI.WIDTH, true, 0, 0, 0, 180, 10f / (float)UI.WIDTH, 10f / (float)UI.HEIGHT);
@@ -405,9 +405,10 @@ namespace SelectorWheel
             {
                 inputAngle = InputToAngle();
             }
-            inputCoord = PointOnCircleInPercentage(Radius, inputAngle, OriginInPixels);
+            inputCoord = PointOnCircleInPercentage(Radius / 1.5f, inputAngle, OriginInPixels);
 
-            //UIHelper.DrawRectangle(inputCoord.X, inputCoord.Y, 0.05f, 0.05f, 0, 235, 255, 255);
+            var p = new Point((int)(inputCoord.X * UI.WIDTH), (int)(inputCoord.Y * UI.HEIGHT));
+            UI.DrawTexture(TexturePath + "Mouse.png", Categories.Count + 1, 1, 50, p, new Size(40, 40));
 
             int inputIndex = ClosestCategoryToInputCoord() != null ? Categories.IndexOf(ClosestCategoryToInputCoord()) : CurrentCatIndex;
             if (inputIndex != CurrentCatIndex)

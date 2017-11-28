@@ -7,8 +7,8 @@ using Rope = spiderman.net.Library.Rope;
 using System.Collections.Generic;
 using System.Drawing;
 using System;
-using spiderman.net.Abilities.WebAttachment;
 using spiderman.net.Scripts;
+using spiderman.net.Abilities.Types;
 
 namespace spiderman.net.Abilities
 {

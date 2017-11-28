@@ -54,7 +54,7 @@
     <Compile Include="Abilities\Melee.cs" />
     <Compile Include="Abilities\SpideySense.cs" />
     <Compile Include="Abilities\Types\TechSlot.cs" />
-    <Compile Include="Abilities\WebAttachment\AttachmentInfo.cs" />
+    <Compile Include="Abilities\Types\AttachmentInfo.cs" />
     <Compile Include="Abilities\WebTech\SpiderWeb.cs" />
     <Compile Include="Abilities\WebTech\TazerWebs.cs" />
     <Compile Include="Abilities\Types\Tech.cs" />
@@ -102,6 +102,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Abilities\WebAttachment\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

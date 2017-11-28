@@ -23,7 +23,6 @@ namespace spiderman.net.Abilities.WebTech
 
             // Register our functions for updating physics.
             Melee.DamagedEntity += OnDamagedEntity;
-
         }
 
         /// <summary>

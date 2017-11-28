@@ -53,7 +53,7 @@ namespace spiderman.net.Abilities
             // Attach the player to the attachment object.
             PlayerCharacter.Task.ClearAllImmediately();
             PlayerCharacter.AttachTo(attachmentObject, 0, new Vector3(0, 0, 1), Vector3.Zero);
-            PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro");
+            PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro", 8.0f, -1, AnimationFlags.Loop);
 
             // Delay for the control.
             Script.Wait(10);

@@ -35,7 +35,6 @@ namespace spiderman.net.Abilities
         {
             // These are so that spider-man is more stable
             // while he's falling / running into traffic.
-            PlayerCharacter.CanRagdoll = false;
             PlayerCharacter.IsCollisionProof = true;
         }
 
@@ -44,6 +43,9 @@ namespace spiderman.net.Abilities
         /// </summary>
         public override void Update()
         {
+            // Loop this.
+            PlayerCharacter.CanRagdoll = false;
+
             // Set the player state accordingly.
             SetPlayerState();
 
@@ -135,6 +137,11 @@ namespace spiderman.net.Abilities
             // We need to reset these flags when the mod stops.
             PlayerCharacter.CanRagdoll = true;
             PlayerCharacter.IsCollisionProof = false;
+        }
+
+        private Vector2 GetMovementVector()
+        {
+            return new Vector2(Game.GetControlNormal(2, Control.MoveLeftRight), Game.GetControlNormal(2, Control.MoveUpDown));
         }
     }
 }

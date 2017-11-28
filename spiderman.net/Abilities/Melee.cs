@@ -495,7 +495,7 @@ namespace spiderman.net.Abilities
                                     ped.ApplyDamage(damage);
                                     if (!ped.IsDead)
                                         ped.Task.ClearAllImmediately();
-                                    ped.SetToRagdoll(500);
+                                    ped.SetToRagdoll(0);
                                     var timer = 0.2f;
                                     while (!ped.IsRagdoll && timer > 0)
                                     {

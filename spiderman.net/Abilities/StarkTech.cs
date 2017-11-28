@@ -28,23 +28,6 @@ namespace spiderman.net.Abilities
 
         private List<CategorySlot> _slots;
 
-        //private List<Tech> _suitModes = new List<Tech> {
-        //    new TrainingWheelsProtocol(),
-        //    new InstantKill()
-        //};
-        //private Tech _currentSuitMode;
-
-        //private List<Tech> _webModes = new List<Tech> {
-        //    new SpiderWebs(),
-        //    new TazerWebs()
-        //};
-        //private Tech _currentWebMode;
-
-        //private List<Tech> _targettingModes = new List<Tech> {
-        //    new MultiDisarm()
-        //};
-        //private Tech _currentTargettingMode;
-
         /// <summary>
         /// The main constructor.
         /// </summary>
@@ -96,7 +79,7 @@ namespace spiderman.net.Abilities
                 {
                     if (type.GetCustomAttribute(typeof(WebTechAttribute)) is WebTechAttribute att)
                     {
-                        var tech = (Tech)Activator.CreateInstance(type);
+                        Tech tech = (Tech)Activator.CreateInstance(type);
                         var cat = att.CategoryName;
                         var find = retVal.Find(x => x.CategoryName == cat);
 
@@ -110,6 +93,9 @@ namespace spiderman.net.Abilities
                         {
                             find.Tech.Add(tech);
                             find.Tech = find.Tech.OrderByDescending(x => GetWebTechAttribute(x).IsDefault).ToList();
+                            if (find.m_ActivateTech != null)
+                                find.m_ActivateTech.Deactivate();
+                            find.m_ActivateTech = find.Tech[0];
                         }
                     }
                 }
@@ -219,6 +205,7 @@ namespace spiderman.net.Abilities
             while (_wheel.Visible)
             {
                 WeaponWheelLogic();
+                GTA.Native.Function.Call(GTA.Native.Hash.HIDE_HUD_AND_RADAR_THIS_FRAME);
                 Script.Yield();
             }
 
