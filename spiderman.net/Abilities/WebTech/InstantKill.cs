@@ -1,6 +1,8 @@
 ﻿using GTA;
 using GTA.Math;
 using GTA.Native;
+using spiderman.net.Abilities.Attributes;
+using spiderman.net.Abilities.Types;
 using spiderman.net.Library;
 using spiderman.net.Library.Extensions;
 using spiderman.net.Scripts;
@@ -12,11 +14,16 @@ namespace spiderman.net.Abilities.WebTech
     /// <summary>
     /// A ultimate brute mode for spidey's suit.
     /// </summary>
+    [WebTech("Suit Mode")]
     public class InstantKill : Tech
     {
         public InstantKill()
         {
             Streaming.RequestAnimationDictionary("melee@unarmed@base");
+
+            // Register our functions for updating physics.
+            Melee.DamagedEntity += OnDamagedEntity;
+
         }
 
         /// <summary>
@@ -192,9 +199,6 @@ namespace spiderman.net.Abilities.WebTech
             // Also make him play a "ready" animation.
             if (PlayerCharacter.GetConfigFlag(60))
                 PlayerCharacter.Task.PlayAnimation("melee@unarmed@base", "melee_intro_plyr", 8.0f, -4.0f, 1250, AnimationFlags.AllowRotation, 0.0f);
-
-            // Register our functions for updating physics.
-            Melee.DamagedEntity += OnDamagedEntity;
 
             // Enhance the suit.
             PlayerCharacter.IsExplosionProof = true;

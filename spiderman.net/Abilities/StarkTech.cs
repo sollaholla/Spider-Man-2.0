@@ -6,6 +6,10 @@ using System.Drawing;
 using System.Collections.Generic;
 using spiderman.net.Abilities.WebTech;
 using System;
+using System.Reflection;
+using spiderman.net.Abilities.Types;
+using System.Linq;
+using spiderman.net.Abilities.Attributes;
 
 namespace spiderman.net.Abilities
 {
@@ -22,22 +26,24 @@ namespace spiderman.net.Abilities
         private Wheel _wheel = new Wheel("Stark-Tech", MainPath,
             0, 0, new Size(64, 64));
 
-        private List<Tech> _suitModes = new List<Tech> {
-            new TrainingWheelsProtocol(),
-            new InstantKill()
-        };
-        private Tech _currentSuitMode;
+        private List<CategorySlot> _slots;
 
-        private List<Tech> _webModes = new List<Tech> {
-            new SpiderWebs(),
-            new TazerWebs()
-        };
-        private Tech _currentWebMode;
+        //private List<Tech> _suitModes = new List<Tech> {
+        //    new TrainingWheelsProtocol(),
+        //    new InstantKill()
+        //};
+        //private Tech _currentSuitMode;
 
-        private List<Tech> _targettingModes = new List<Tech> {
-            new MultiDisarm()
-        };
-        private Tech _currentTargettingMode;
+        //private List<Tech> _webModes = new List<Tech> {
+        //    new SpiderWebs(),
+        //    new TazerWebs()
+        //};
+        //private Tech _currentWebMode;
+
+        //private List<Tech> _targettingModes = new List<Tech> {
+        //    new MultiDisarm()
+        //};
+        //private Tech _currentTargettingMode;
 
         /// <summary>
         /// The main constructor.
@@ -53,13 +59,13 @@ namespace spiderman.net.Abilities
         /// </summary>
         private void CreateWheel()
         {
-            // Add the suit category.
-            _wheel.AddCategory(GenerateCategory(0, "Suit Mode", _suitModes));
-            _currentSuitMode = _suitModes[0];
-            _wheel.AddCategory(GenerateCategory(1, "Web Mode", _webModes));
-            _currentWebMode = _webModes[0];
-            _wheel.AddCategory(GenerateCategory(2, "Targetting Mode", _targettingModes));
-            _currentTargettingMode = _targettingModes[0];
+            // Generate slots for this assembly.
+            _slots = GetCategorySlotsFromAssembly(Assembly.GetExecutingAssembly());
+            for (int i = 0; i < _slots.Count; i++)
+            {
+                var slot = _slots[i];
+                _wheel.AddCategory(GenerateCategory(slot.ID, slot.CategoryName, slot.Tech));
+            }
 
             // Refresh the menu.
             _wheel.Origin = new Vector2(0.5f, 0.5f);
@@ -69,6 +75,52 @@ namespace spiderman.net.Abilities
             _wheel.OnWheelClose += OnWheelClose;
             _wheel.OnWheelOpen += OnWheelOpen;
             _wheel.WheelName = "Karen";
+        }
+
+        /// <summary>
+        /// Loads each type in the assembly, finds all tech, and shoves them into a list
+        /// that defines what categories (and tech) should be defined in the weapon wheel.
+        /// </summary>
+        /// <param name="assembly"></param>
+        /// <returns></returns>
+        private static List<CategorySlot> GetCategorySlotsFromAssembly(Assembly assembly)
+        {
+            var retVal = new List<CategorySlot>();
+            var types = assembly.GetTypes();
+            int idCount = 0;
+
+            for (int i = 0; i < types.Length; i++)
+            {
+                var type = types[i];
+                if (type.BaseType == typeof(Tech))
+                {
+                    if (type.GetCustomAttribute(typeof(WebTechAttribute)) is WebTechAttribute att)
+                    {
+                        var tech = (Tech)Activator.CreateInstance(type);
+                        var cat = att.CategoryName;
+                        var find = retVal.Find(x => x.CategoryName == cat);
+
+                        if (find == null)
+                        {
+                            var add = new CategorySlot(cat, idCount, new List<Tech> { tech }, tech);
+                            retVal.Add(add);
+                            idCount++;
+                        }
+                        else
+                        {
+                            find.Tech.Add(tech);
+                            find.Tech = find.Tech.OrderByDescending(x => GetWebTechAttribute(x).IsDefault).ToList();
+                        }
+                    }
+                }
+            }
+
+            return retVal;
+        }
+
+        private static WebTechAttribute GetWebTechAttribute(Tech x)
+        {
+            return x.GetType().GetCustomAttribute(typeof(WebTechAttribute)) as WebTechAttribute;
         }
 
         private void OnWheelOpen(Wheel sender, WheelCategory selectedCategory, WheelCategoryItem selectedItem)
@@ -123,18 +175,12 @@ namespace spiderman.net.Abilities
             if (selectedTech == null)
                 return;
 
-            // Set the current tech mode based on category ID.
-            switch(selectedCategory.ID)
+            foreach (var categorySlot in _slots)
             {
-                case 0:
-                    SetTech(selectedTech, ref _currentSuitMode);
-                    break;
-                case 1:
-                    SetTech(selectedTech, ref _currentWebMode);
-                    break;
-                case 2:
-                    SetTech(selectedTech, ref _currentTargettingMode);
-                    break;
+                if (categorySlot.ID == selectedCategory.ID)
+                {
+                    SetTech(selectedTech, ref categorySlot.m_ActivateTech);
+                }
             }
         }
 
@@ -176,9 +222,10 @@ namespace spiderman.net.Abilities
                 Script.Yield();
             }
 
-            ProcessTech(_currentWebMode);
-            ProcessTech(_currentSuitMode);
-            ProcessTech(_currentTargettingMode);
+            foreach (var slot in _slots)
+            {
+                ProcessTech(slot.m_ActivateTech);
+            }
         }
 
         /// <summary>
@@ -271,9 +318,13 @@ namespace spiderman.net.Abilities
         public override void Stop()
         {
             // Deactivate our tech when we stop the script.
-            FullyDeactivateTech(_currentSuitMode);
-            FullyDeactivateTech(_currentTargettingMode);
-            FullyDeactivateTech(_currentWebMode);
+            //FullyDeactivateTech(_currentSuitMode);
+            //FullyDeactivateTech(_currentTargettingMode);
+            //FullyDeactivateTech(_currentWebMode);
+            foreach (var slot in _slots)
+            {
+                FullyDeactivateTech(slot.m_ActivateTech);
+            }
         }
 
         /// <summary>

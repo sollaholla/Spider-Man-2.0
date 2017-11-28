@@ -5,9 +5,12 @@ using Rope = spiderman.net.Library.Rope;
 using GTA.Math;
 using spiderman.net.Library.Extensions;
 using spiderman.net.Scripts;
+using spiderman.net.Abilities.Types;
+using spiderman.net.Abilities.Attributes;
 
 namespace spiderman.net.Abilities.WebTech
 {
+    [WebTech("Web Mode")]
     public class TazerWebs : Tech
     {
         public override string Name => "Tazer Webs";

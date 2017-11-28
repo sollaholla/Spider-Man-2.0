@@ -1,16 +1,16 @@
-﻿using System;
-using GTA;
+﻿using GTA;
 using GTA.Math;
 using spiderman.net.Library;
 using GTA.Native;
 using spiderman.net.Scripts;
 using System.Collections.Generic;
 using Rope = spiderman.net.Library.Rope;
-using Graphics = spiderman.net.Library.GTAGraphics;
-using System.Drawing;
+using spiderman.net.Abilities.Types;
+using spiderman.net.Abilities.Attributes;
 
 namespace spiderman.net.Abilities.WebTech
 {
+    [WebTech("Attack Mode")]
     public class MultiDisarm : Tech
     {
         public override string Name => "Multi Disarm";

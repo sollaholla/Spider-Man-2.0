@@ -50,12 +50,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Abilities\Agility.cs" />
+    <Compile Include="Abilities\Attributes\WebTechAttribute.cs" />
     <Compile Include="Abilities\Melee.cs" />
     <Compile Include="Abilities\SpideySense.cs" />
+    <Compile Include="Abilities\Types\TechSlot.cs" />
     <Compile Include="Abilities\WebAttachment\AttachmentInfo.cs" />
     <Compile Include="Abilities\WebTech\SpiderWeb.cs" />
     <Compile Include="Abilities\WebTech\TazerWebs.cs" />
-    <Compile Include="Abilities\WebTech\Tech.cs" />
+    <Compile Include="Abilities\Types\Tech.cs" />
     <Compile Include="Abilities\WebTech\InstantKill.cs" />
     <Compile Include="Abilities\WallCrawl.cs" />
     <Compile Include="Abilities\WebAttachments.cs" />

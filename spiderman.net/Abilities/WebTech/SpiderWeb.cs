@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
 using spiderman.net.Library;
+using spiderman.net.Abilities.Types;
+using spiderman.net.Abilities.Attributes;
+using GTA;
 
 namespace spiderman.net.Abilities.WebTech
 {
@@ -7,6 +10,7 @@ namespace spiderman.net.Abilities.WebTech
     /// The default web mode. Does nothing other than,
     /// play audio.
     /// </summary>
+    [WebTech("Web Mode", IsDefault = true)]
     public class SpiderWebs : Tech
     {
         public SpiderWebs()

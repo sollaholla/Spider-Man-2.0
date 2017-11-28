@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
-using spiderman.net.Library;
+﻿using spiderman.net.Library;
+using spiderman.net.Abilities.Attributes;
+using spiderman.net.Abilities.Types;
 
 namespace spiderman.net.Abilities.WebTech
 {
     /// <summary>
     /// The default suit mode for Peter.
     /// </summary>
+    [WebTech("Suit Mode", IsDefault = true)]
     public class TrainingWheelsProtocol : Tech
     {
         /// <summary>

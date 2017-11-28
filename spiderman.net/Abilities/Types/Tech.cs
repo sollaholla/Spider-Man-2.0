@@ -2,7 +2,7 @@
 using spiderman.net.Library;
 using System.Collections.Generic;
 
-namespace spiderman.net.Abilities.WebTech
+namespace spiderman.net.Abilities.Types
 {
     /// <summary>
     /// Defines how the structure of Stark Tech works.
