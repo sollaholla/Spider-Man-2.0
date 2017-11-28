@@ -139,9 +139,14 @@ namespace spiderman.net.Abilities
             PlayerCharacter.IsCollisionProof = false;
         }
 
+        /// <summary>
+        /// Returns the movement vector as a vector2.
+        /// </summary>
+        /// <returns></returns>
         private Vector2 GetMovementVector()
         {
-            return new Vector2(Game.GetControlNormal(2, Control.MoveLeftRight), Game.GetControlNormal(2, Control.MoveUpDown));
+            return new Vector2(Game.GetControlNormal(2, Control.MoveLeftRight),
+                -Game.GetControlNormal(2, Control.MoveUpDown));
         }
     }
 }
