@@ -4,6 +4,7 @@ using spiderman.net.Library;
 using System.Drawing;
 using System;
 using spiderman.net.Library.Extensions;
+using spiderman.net.Scripts;
 
 namespace spiderman.net.Abilities
 {
@@ -46,6 +47,9 @@ namespace spiderman.net.Abilities
             // Loop this.
             PlayerCharacter.CanRagdoll = false;
 
+            // DarkSouls-style roll.
+            HandleRoll();
+
             // Set the player state accordingly.
             SetPlayerState();
 
@@ -85,7 +89,39 @@ namespace spiderman.net.Abilities
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Allows the player to do a evasive roll.
+        /// </summary>
+        private void HandleRoll()
+        {
+            if (!Game.IsDisabledControlJustPressed(2, Control.LookBehind) || !PlayerCharacter.GetConfigFlag(60))
+                return;
+
+            PlayerCharacter.Task.ClearAllImmediately();
+
+            // Play the rolling animation.
+            PlayerCharacter.Task.PlayAnimation("move_fall", "land_roll",
+                8.0f, -8.0f, 750, AnimationFlags.AllowRotation, 0f);
+
+            bool wasInv = PlayerCharacter.IsInvincible;
+            bool wasColP = PlayerCharacter.IsCollisionProof;
+            bool wasMelP = PlayerCharacter.IsMeleeProof;
+            PlayerCharacter.IsInvincible = true;
+            PlayerCharacter.IsCollisionProof = true;
+            PlayerCharacter.IsMeleeProof = true;
+
+            while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"))
+            {
+                Script.Yield();
+            }
+
+            PlayerCharacter.IsInvincible = wasInv;
+            PlayerCharacter.IsCollisionProof = wasColP;
+            PlayerCharacter.IsMeleeProof = wasMelP;
+
+        }
+
         /// <summary>
         /// If a ray (starting at the characters middle, and down to the floor) hit's anything,
         /// then we return true; otherwise, we return false.

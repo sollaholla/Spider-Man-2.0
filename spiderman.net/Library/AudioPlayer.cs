@@ -20,12 +20,15 @@ namespace spiderman.net.Library
         /// <param name="volume">The sounds volume.</param>
         public static void PlaySound(string path, float volume)
         {
-            var wr = new WaveFileReader(path);
-            var output = new DirectSoundOut();
-            var w32 = new WaveChannel32(wr);
-            w32.Volume = volume;
-            output.Init(w32);
-            output.Play();
+            using (var wr = new WaveFileReader(path))
+            {
+                var output = new DirectSoundOut();
+                var w32 = new WaveChannel32(wr);
+                w32.Volume = volume;
+                output.Init(w32);
+                output.Play();
+                wr.Close();
+            }
         }
     }
 }

@@ -29,6 +29,7 @@ namespace spiderman.net.Scripts
             Game.DisableControlThisFrame(2, Control.MeleeAttackLight);
             Game.DisableControlThisFrame(2, Control.MeleeBlock);
             Game.DisableControlThisFrame(2, Control.SelectWeaponMelee);
+            Game.DisableControlThisFrame(2, Control.LookBehind);
         }
 
         /// <summary>

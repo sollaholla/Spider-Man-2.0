@@ -17,12 +17,11 @@ namespace spiderman.net.Abilities.WebTech
     [WebTech("Suit Mode")]
     public class InstantKill : Tech
     {
+        private bool _init;
+
         public InstantKill()
         {
             Streaming.RequestAnimationDictionary("melee@unarmed@base");
-
-            // Register our functions for updating physics.
-            Melee.DamagedEntity += OnDamagedEntity;
         }
 
         /// <summary>
@@ -223,6 +222,7 @@ namespace spiderman.net.Abilities.WebTech
             foreach (var particle in _particles)
                 particle.Remove();
             _particles.Clear();
+            _init = false;
         }
 
         /// <summary>
@@ -230,6 +230,12 @@ namespace spiderman.net.Abilities.WebTech
         /// </summary>
         public override void Process()
         {
+            if (!_init)
+            {
+                // Register our functions for updating physics.
+                Melee.DamagedEntity += OnDamagedEntity;
+                _init = true;
+            }
         }
     }
 }
