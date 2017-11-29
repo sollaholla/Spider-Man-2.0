@@ -119,6 +119,7 @@ namespace spiderman.net.Abilities
                 timer -= Time.UnscaledDeltaTime;
                 Script.Yield();
             }
+
             var peds = World.GetNearbyPeds(PlayerCharacter, 50f);
             var acc = new List<int>();
             while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"))

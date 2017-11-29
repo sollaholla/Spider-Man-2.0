@@ -107,9 +107,6 @@
     <Folder Include="Abilities\WebAttachment\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Spider-Man Files\hudbg.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Spider-Man Files\InstantKill.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
