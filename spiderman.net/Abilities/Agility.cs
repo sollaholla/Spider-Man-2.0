@@ -99,11 +99,13 @@ namespace spiderman.net.Abilities
             if (!Game.IsDisabledControlJustPressed(2, Control.LookBehind) || !PlayerCharacter.GetConfigFlag(60))
                 return;
 
+            var vel = PlayerCharacter.Velocity;
+
             PlayerCharacter.Task.ClearAllImmediately();
 
             // Play the rolling animation.
             PlayerCharacter.Task.PlayAnimation("move_fall", "land_roll",
-                8.0f, -8.0f, 750, AnimationFlags.AllowRotation, 0f);
+                8.0f, -4.0f, 750, AnimationFlags.AllowRotation, 0.0f);
 
             bool wasInv = PlayerCharacter.IsInvincible;
             bool wasColP = PlayerCharacter.IsCollisionProof;
@@ -122,9 +124,10 @@ namespace spiderman.net.Abilities
 
             var peds = World.GetNearbyPeds(PlayerCharacter, 50f);
             var acc = new List<int>();
-            PlayerCharacter.Velocity = (PlayerCharacter.ForwardVector * 15f) + (Vector3.WorldDown * 9.81f);
             while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"))
             {
+                PlayerCharacter.Velocity = vel;
+
                 for (int i = 0; i < peds.Length; i++)
                 {
                     var ped = peds[i];

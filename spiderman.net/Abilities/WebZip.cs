@@ -122,7 +122,7 @@ namespace spiderman.net.Abilities
             }
 
             // Catch our landing at high falls.
-            if (PlayerCharacter.GetConfigFlag(60) || PlayerCharacter.HeightAboveGround < 1.3f)
+            if (PlayerCharacter.GetConfigFlag(60) || PlayerCharacter.HeightAboveGround < 1.5f)
             {
                 // Check the fall height, catch the landing,
                 // and reset the fall height.
