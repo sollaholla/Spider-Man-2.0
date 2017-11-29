@@ -5,6 +5,7 @@ using System.Drawing;
 using System;
 using spiderman.net.Library.Extensions;
 using spiderman.net.Scripts;
+using System.Collections.Generic;
 
 namespace spiderman.net.Abilities
 {
@@ -107,18 +108,40 @@ namespace spiderman.net.Abilities
             bool wasInv = PlayerCharacter.IsInvincible;
             bool wasColP = PlayerCharacter.IsCollisionProof;
             bool wasMelP = PlayerCharacter.IsMeleeProof;
+            bool wasBP = PlayerCharacter.IsBulletProof;
             PlayerCharacter.IsInvincible = true;
             PlayerCharacter.IsCollisionProof = true;
             PlayerCharacter.IsMeleeProof = true;
-
+            PlayerCharacter.IsBulletProof = true;
+            var timer = 0.5f;
+            while (!PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll") && timer > 0)
+            {
+                timer -= Time.UnscaledDeltaTime;
+                Script.Yield();
+            }
+            var peds = World.GetNearbyPeds(PlayerCharacter, 50f);
+            var acc = new List<int>();
             while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"))
             {
+                PlayerCharacter.Velocity = PlayerCharacter.ForwardVector * 30f;
+                for (int i = 0; i < peds.Length; i++)
+                {
+                    var ped = peds[i];
+                    acc.Add(ped.Accuracy);
+                    ped.Accuracy = 0;
+                }
                 Script.Yield();
+            }
+            for (int i = 0; i < peds.Length; i++)
+            {
+                var ped = peds[i];
+                ped.Accuracy = acc[i];
             }
 
             PlayerCharacter.IsInvincible = wasInv;
             PlayerCharacter.IsCollisionProof = wasColP;
             PlayerCharacter.IsMeleeProof = wasMelP;
+            PlayerCharacter.IsBulletProof = wasBP;
 
         }
 
