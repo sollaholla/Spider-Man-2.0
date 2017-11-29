@@ -203,7 +203,7 @@ namespace spiderman.net.Abilities
                         {
                             PlayerCharacter.Task.ClearAll();
                             PlayerCharacter.Task.PlayAnimation("anim@mp_snowball", "pickup_snowball", 8.0f, -4.0f, 500, AnimationFlags.AllowRotation, 0.0f);
-                            Script.Wait(250);
+                            GameWaiter.Wait(250);
                             vehicle.Detach();
                             vehicle.Position = PlayerCharacter.Position + PlayerCharacter.ForwardVector * 2.5f;
                             break;
@@ -533,7 +533,7 @@ namespace spiderman.net.Abilities
             //PlayerCharacter.Task.ClearAll();
 
             if (wasInAir)
-                Script.Wait(250);
+                GameWaiter.Wait(250);
         }
 
         /// <summary>

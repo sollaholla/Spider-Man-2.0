@@ -122,9 +122,9 @@ namespace spiderman.net.Abilities
 
             var peds = World.GetNearbyPeds(PlayerCharacter, 50f);
             var acc = new List<int>();
+            PlayerCharacter.Velocity = (PlayerCharacter.ForwardVector * 15f) + (Vector3.WorldDown * 9.81f);
             while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"))
             {
-                PlayerCharacter.Velocity = PlayerCharacter.ForwardVector * 30f;
                 for (int i = 0; i < peds.Length; i++)
                 {
                     var ped = peds[i];

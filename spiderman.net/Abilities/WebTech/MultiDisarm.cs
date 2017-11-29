@@ -77,7 +77,7 @@ namespace spiderman.net.Abilities.WebTech
                 center /= pList.Count;
 
                 PlayerCharacter.PlayAimAnim(center);
-                Script.Wait(300);
+                GameWaiter.Wait(300);
                 PlayerCharacter.PlayGrappleAnim(-1f);
                 foreach (var r in rList)
                     r.Delete();

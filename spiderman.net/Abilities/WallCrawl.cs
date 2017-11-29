@@ -56,7 +56,7 @@ namespace spiderman.net.Abilities
             PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro", 8.0f, -1, AnimationFlags.Loop);
 
             // Delay for the control.
-            Script.Wait(10);
+            GameWaiter.Wait(10);
 
             // Create camera.
             var camDirection = Vector3.Zero;
@@ -108,7 +108,7 @@ namespace spiderman.net.Abilities
                 if (!result.Hit)
                 {
                     DetachPlayer(attachmentObject);
-                    Script.Wait(10);
+                    GameWaiter.Wait(10);
                     PlayerCharacter.Task.Climb();
                     WebZip.OverrideFallHeight(0f);
                     cancelClimb = true;

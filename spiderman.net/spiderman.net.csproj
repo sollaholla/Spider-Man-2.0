@@ -77,6 +77,7 @@
     <Compile Include="Library\Extensions\PedExtensions.cs" />
     <Compile Include="Library\Extensions\Vector3Extensions.cs" />
     <Compile Include="Library\Extensions\VehicleExtensions.cs" />
+    <Compile Include="Library\GameWaiter.cs" />
     <Compile Include="Library\Graphics.cs" />
     <Compile Include="Library\GTAMarkerType.cs" />
     <Compile Include="Library\Maths.cs" />
@@ -103,9 +104,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Abilities\WebAttachment\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Content Include="Spider-Man Files\InstantKill.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -160,7 +160,7 @@ namespace spiderman.net.Abilities
                     _ropeAttachedEntity.Velocity = headingDirection * 25;
                     EndAttachment();
                     if (flip) FrontFlip();
-                    Script.Wait(150);
+                    GameWaiter.Wait(150);
                     break;
                 }
 
@@ -315,10 +315,10 @@ namespace spiderman.net.Abilities
             PlayerCharacter.Task.ClearAllImmediately();
             PlayerCharacter.Velocity = Vector3.WorldUp * 15f;
             PlayerCharacter.SetConfigFlag(60, false);
-            Script.Wait(10);
+            GameWaiter.Wait(10);
             WebZip.OverrideFallHeight(float.MaxValue);
             PlayerCharacter.Task.Skydive();
-            Script.Wait(1);
+            GameWaiter.Wait(1);
             PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle", 2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
             var t = 0.7f;
             while (t > 0)
@@ -336,7 +336,7 @@ namespace spiderman.net.Abilities
             _webShooterHelper?.Delete();
             PlayerCharacter.Task.ClearAnimation("amb@code_human_wander_texting@male@base", "static");
             PlayerCharacter.Task.ClearAnimation("move_crouch_proto", "idle_intro");
-            Script.Wait(200);
+            GameWaiter.Wait(200);
         }
 
         private void OnShotWeb(Entity webShooterHelper, Entity entityHit)
@@ -358,7 +358,7 @@ namespace spiderman.net.Abilities
             PlayerCharacter.PlayAimAnim(entity);
 
             // Wait 150 ms.
-            Script.Wait(150);
+            GameWaiter.Wait(150);
 
             // Now we need to spawn our web shooter helper.
             _webShooterHelper = CreateWebShooterHelper();

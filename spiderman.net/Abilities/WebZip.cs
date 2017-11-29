@@ -316,7 +316,7 @@ namespace spiderman.net.Abilities
 
             // Clear the falling animation.
             PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
-            Script.Wait(500);
+            GameWaiter.Wait(500);
         }
 
         /// <summary>

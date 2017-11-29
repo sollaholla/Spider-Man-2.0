@@ -22,12 +22,21 @@ namespace spiderman.net.Library
         {
             using (var wr = new WaveFileReader(path))
             {
-                var output = new DirectSoundOut();
-                var w32 = new WaveChannel32(wr);
-                w32.Volume = volume;
-                output.Init(w32);
-                output.Play();
-                wr.Close();
+                try
+                {
+                    var output = new DirectSoundOut();
+                    var w32 = new WaveChannel32(wr)
+                    {
+                        Volume = volume
+                    };
+                    output.Init(w32);
+                    output.Play();
+                    wr.Close();
+                }
+                catch (System.Exception ex)
+                {
+                    GTA.UI.Notify(ex.Message + "\n" + ex.StackTrace);
+                }
             }
         }
     }
