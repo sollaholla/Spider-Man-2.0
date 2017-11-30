@@ -94,6 +94,7 @@ namespace spiderman.net
                 StopAllAbilities();
                 _initialized = false;
             }
+            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 1000f);
 
             // Make sure the player doesn't have parachutes..
             Function.Call(Hash.SET_PLAYER_HAS_RESERVE_PARACHUTE, Game.Player.Handle, false);

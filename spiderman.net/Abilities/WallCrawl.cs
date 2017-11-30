@@ -97,7 +97,7 @@ namespace spiderman.net.Abilities
 
                 // Start a new surface ray.
                 var surfaceRay = WorldProbe.StartShapeTestRay(attachmentObject.Position + attachmentObject.UpVector,
-                    attachmentObject.Position - attachmentObject.UpVector * 2.5f,
+                    attachmentObject.Position - attachmentObject.UpVector,
                     ShapeTestFlags.IntersectMap, attachmentObject);
 
                 // Handle the ejection keys.
@@ -109,8 +109,20 @@ namespace spiderman.net.Abilities
                 {
                     DetachPlayer(attachmentObject);
                     GameWaiter.Wait(10);
-                    PlayerCharacter.Task.Climb();
-                    WebZip.OverrideFallHeight(0f);
+                    if (Game.IsDisabledControlPressed(2, Control.Sprint))
+                    {
+                        PlayerCharacter.Task.Skydive();
+                        PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
+                            2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
+                        PlayerCharacter.Velocity = Vector3.WorldUp * 25f;
+                        WebZip.OverrideFallHeight(float.MaxValue);
+                        GameWaiter.Wait(100);
+                    }
+                    else
+                    {
+                        PlayerCharacter.Task.Climb();
+                        WebZip.OverrideFallHeight(0f);
+                    }
                     cancelClimb = true;
                     break;
                 }

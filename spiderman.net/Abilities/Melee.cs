@@ -273,13 +273,8 @@ namespace spiderman.net.Abilities
             const float checkRadius = 10f; // We'll do 10 meters by default.
             var entities = World.GetNearbyEntities(PlayerCharacter.Position, checkRadius);
 
-            // This is how fast that the attack direction 
-            // will snap to the actual target direction.
-            const float attackDirectionLerpSpeed = 10f;
-
             // This will be our attack direction.
-            _lastAttackDirection = Vector3.Lerp(_lastAttackDirection, GetAttackDirection(),
-                Time.UnscaledDeltaTime * attackDirectionLerpSpeed);
+            _lastAttackDirection = GetAttackDirection();
 
             // This is the maximum dot product that the entity delta can
             // be from the attack direction.
