@@ -135,9 +135,9 @@ namespace spiderman.net.Abilities
                     // player can see where he's going to throw.
                     vehicle.Alpha = 100;
 
-                    while (true)
+                    GameWaiter.DoWhile(() =>
                     {
-                        spiderman.net.Scripts.Controls.DisableControlsKeepRecording(2);
+                        Controls.DisableControlsKeepRecording(2);
                         Game.EnableControlThisFrame(2, Control.ReplayStartStopRecording);
                         Game.EnableControlThisFrame(2, Control.MoveLeftRight);
                         Game.EnableControlThisFrame(2, Control.MoveUpDown);
@@ -154,7 +154,7 @@ namespace spiderman.net.Abilities
                         if (PlayerCharacter.IsRagdoll || PlayerCharacter.IsBeingStunned ||
                             PlayerCharacter.IsDead || PlayerCharacter.IsInVehicle() ||
                             PlayerCharacter.IsGettingUp)
-                            break;
+                            return false;
 
                         // Play our pickup animation sequence.
                         if (PlayerCharacter.IsPlayingAnimation("anim@mp_snowball", "pickup_snowball"))
@@ -162,7 +162,7 @@ namespace spiderman.net.Abilities
                             hasPlayedAnimation = true;
                             vehicle.Velocity = Vector3.Zero;
                             Script.Yield();
-                            continue;
+                            return true;
                         }
                         // Now that we've played that animation let's continue.
                         else if (hasPlayedAnimation)
@@ -206,7 +206,7 @@ namespace spiderman.net.Abilities
                             GameWaiter.Wait(250);
                             vehicle.Detach();
                             vehicle.Position = PlayerCharacter.Position + PlayerCharacter.ForwardVector * 2.5f;
-                            break;
+                            return false;
                         }
 
                         if (Game.IsDisabledControlJustReleased(2, Control.Attack))
@@ -217,11 +217,12 @@ namespace spiderman.net.Abilities
                             vehicle.Velocity += PlayerCharacter.Velocity;
                             vehicle.Velocity = GameplayCamera.Direction * 25000 / weight;
                             PlayerCharacter.Velocity = Vector3.Zero;
-                            break;
+                            return false;
                         }
 
-                        Script.Yield();
-                    }
+                        return true;
+                    }, 
+                    null);
 
                     // Detach the vehicle if needed.
                     if (vehicle.IsAttached())

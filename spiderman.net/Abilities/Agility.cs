@@ -121,20 +121,21 @@ namespace spiderman.net.Abilities
             PlayerCharacter.IsMeleeProof = true;
             PlayerCharacter.IsBulletProof = true;
 
-            var timer = 0.5f;
-            while (!PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll") && timer > 0)
+            GameWaiter.WaitUntil(500, () => PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"));
+            GameWaiter.DoWhile(() =>
             {
-                timer -= Time.UnscaledDeltaTime;
-                Script.Yield();
-            }
-            while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll") && GroundRay(out var normal))
-            {
+                if (!(PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll") && GroundRay(out var normal)))
+                {
+                    return false;
+                }
+
                 // First we need to get the direction we want.
                 var direction = Vector3.Cross(-PlayerCharacter.RightVector, normal);
                 direction.Normalize(); // We'll have to normalize this, just in case.
                 PlayerCharacter.Velocity = direction * 25f;
-                Script.Yield();
-            }
+
+                return true;
+            }, null);
 
             PlayerCharacter.IsInvincible = wasInv;
             PlayerCharacter.IsCollisionProof = wasColP;
