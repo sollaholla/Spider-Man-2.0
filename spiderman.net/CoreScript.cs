@@ -89,8 +89,8 @@ namespace spiderman.net
             {
                 // Set the new ped.
                 PlayerCharacter = Game.Player.Character;
-                PlayerCharacter.MaxHealth = 5000;
-                PlayerCharacter.Health = 5000;
+                PlayerCharacter.MaxHealth = 3000;
+                PlayerCharacter.Health = 3000;
                 StopAllAbilities();
                 _initialized = false;
             }

@@ -31,7 +31,7 @@ namespace SelectorWheel
         Vector2 inputCoord = Vector2.Zero;
         float Radius = 250;
         float inputAngle = 265f;
-        const float deadzone = 0.005f;
+        const float deadzone = 0.001f;
 
         bool UseTextures;
         bool HaveTexturesBeenCached;
@@ -800,13 +800,16 @@ namespace SelectorWheel
             Right //requires SET_TEXT_WRAP
         }
 
-        public static void DrawCustomText(string Message, float FontSize, GTA.Font FontType, int Red, int Green, int Blue, int Alpha, float XPos, float YPos, TextJustification justifyType = TextJustification.Left, bool ForceTextWrap = false, float startWrap = 0f, float endWrap = 1f, bool withRectangle = false, int R = 0, int G = 0, int B = 0, int A = 255, float rectWidthOffset = 0f, float rectHeightOffset = 0f, float rectYPosDivisor = 23.5f)
+        public static void DrawCustomText(string Message, float FontSize, GTA.Font FontType, int Red, int Green, 
+            int Blue, int Alpha, float XPos, float YPos, 
+            TextJustification justifyType = TextJustification.Left, bool ForceTextWrap = false, float startWrap = 0f, float endWrap = 1f, bool withRectangle = false, int R = 0, int G = 0, int B = 0, int A = 255, float rectWidthOffset = 0f, float rectHeightOffset = 0f, float rectYPosDivisor = 23.5f)
         {
             Function.Call(Hash._SET_TEXT_ENTRY, "jamyfafi"); //Required, don't change this! AKA BEGIN_TEXT_COMMAND_DISPLAY_TEXT
             Function.Call(Hash.SET_TEXT_SCALE, FontSize, FontSize); //1st param: 1.0f
             Function.Call(Hash.SET_TEXT_FONT, (int)FontType);
             Function.Call(Hash.SET_TEXT_COLOUR, Red, Green, Blue, Alpha);
             //Function.Call(Hash.SET_TEXT_DROPSHADOW, 0, 0, 0, 0, 0);
+            Function.Call(Hash.SET_TEXT_DROP_SHADOW, 1, 1, 1, 1, 1);
             Function.Call(Hash.SET_TEXT_JUSTIFICATION, (int)justifyType);
             if (justifyType == TextJustification.Right || ForceTextWrap)
             {

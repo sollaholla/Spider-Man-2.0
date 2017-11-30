@@ -96,7 +96,7 @@ namespace spiderman.net.Abilities
         /// <summary>
         /// Catch our landing so we don't die from high falls.
         /// </summary>
-        private bool CheckFallAndCatchLanding()
+        private bool CheckFallAndCatchLanding(Rope r = null)
         {
             // If the player is falling then...
             if (PlayerCharacter.IsFalling)
@@ -130,6 +130,7 @@ namespace spiderman.net.Abilities
                 if (_fallHeight > maxFallHeight)
                 {
                     // Try to catch our landing.
+                    r?.Delete();
                     CatchLanding();
                     CaughtLanding?.Invoke(this, new EventArgs(), _fallHeight);
                     _fallHeight = 0f;
@@ -222,9 +223,14 @@ namespace spiderman.net.Abilities
                 }
 
                 // Loop until the timer is done, or we've caught our landing.
-                while (timer > 0 && !PlayerCharacter.HasCollidedWithAnything && !CheckFallAndCatchLanding())
+                while (timer > 0 && !PlayerCharacter.HasCollidedWithAnything)
                 {
                     Game.Player.SetSuperJumpThisFrame();
+
+                    if (CheckFallAndCatchLanding(rope))
+                    {
+                        break;
+                    }
 
                     // Cache the players right hand coord.
                     var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
@@ -263,7 +269,7 @@ namespace spiderman.net.Abilities
                 PlayerCharacter.Task.ClearAnimation("weapons@projectile@", "throw_m_fb_stand");
 
                 // Destroy the rope here.
-                if (rope != null && rope.Exists())
+                if (Rope.Exists(rope))
                 {
                     rope.Delete();
                 }
@@ -439,7 +445,7 @@ namespace spiderman.net.Abilities
                             if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_back_to_idle"))
                             {
                                 // If we've done enough of this animation then stop it.
-                                if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.2f)
+                                if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.15f)
                                 {
                                     // Play the regular falling animation.
                                     PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
@@ -517,7 +523,7 @@ namespace spiderman.net.Abilities
                             if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_flip_back_to_front"))
                             {
                                 // If we've done enough of this animation then stop it.
-                                if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.25f)
+                                if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.2f)
                                 {
                                     // Play the regular falling animation.
                                     PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",

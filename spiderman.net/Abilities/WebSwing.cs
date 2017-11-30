@@ -88,7 +88,7 @@ namespace spiderman.net.Abilities
                     PlayerCharacter.AttachToEntity(rotationHelper, 0, new Vector3(0, -0.25f, -1.15f),
                         Vector3.Zero, false, false, true, 0, true);
 
-                    var t = 0.15f;
+                    var t = 0.5f;
                     while (!PlayerCharacter.IsAttached() && t > 0)
                     {
                         t -= Time.UnscaledDeltaTime;
@@ -106,12 +106,14 @@ namespace spiderman.net.Abilities
 
                     // Create our rope.
                     var initialLength = Vector3.Distance(rotationHelper.Position, hitPoint);
+                    if (initialLength <= 0)
+                        initialLength = 1;
                     var rope = Rope.AddRope(rotationHelper.Position, initialLength,
                         GTARopeType.ThickRope, initialLength, initialLength - 0.1f, true, false);
-                    rope.ActivatePhysics();
 
                     // Attach the two helpers.
                     rope.AttachEntities(rotationHelper, Vector3.Zero, webHitHelper, Vector3.Zero, initialLength);
+                    rope.ActivatePhysics();
 
                     // Init a rotation.
                     var initalDirection = Vector3.ProjectOnPlane(GameplayCamera.Direction,
@@ -141,11 +143,14 @@ namespace spiderman.net.Abilities
                             WebZip.OverrideFallHeight(float.MaxValue);
                             var normal = rotationHelper.GetLastCollisionNormal();
                             var dir = Vector3.Reflect(rotationHelper.Velocity, normal);
+                            dir.Normalize();
+                            PlayerCharacter.Detach();
                             PlayerCharacter.Heading = dir.ToHeading();
-                            PlayerCharacter.Velocity = dir * rotationHelper.Velocity.Length() * 2;
+                            PlayerCharacter.Velocity = dir * rotationHelper.Velocity.Length() / 2;
                             PlayerCharacter.Task.Skydive();
                             PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front",
                                 4.0f, -2.0f, 1150, (AnimationFlags)40, 0.0f);
+                            PlayerCharacter.Quaternion.Normalize();
                             Audio.ReleaseSound(Audio.PlaySoundFromEntity(PlayerCharacter, "DLC_Exec_Office_Non_Player_Footstep_Mute_group_MAP"));
                             GTAGraphics.StartParticle("core", "ent_dst_dust", PlayerCharacter.Position, PlayerCharacter.Rotation, 1f);
                             break;
@@ -244,11 +249,11 @@ namespace spiderman.net.Abilities
                     PlayerCharacter.Task.ClearAnimation("missrappel", "rappel_idle");
 
                     // Delete the helper props.
-                    rotationHelper.Delete();
-                    webHitHelper.Delete();
+                    rotationHelper?.Delete();
+                    webHitHelper?.Delete();
 
                     // Delete the rope.
-                    rope.Delete();
+                    rope?.Delete();
                 }
             }
         }
@@ -274,6 +279,7 @@ namespace spiderman.net.Abilities
                     2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
             }
 
+            PlayerCharacter.Quaternion.Normalize();
             WebZip.OverrideFallHeight(float.MaxValue);
         }
 

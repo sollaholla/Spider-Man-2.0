@@ -96,50 +96,44 @@ namespace spiderman.net.Abilities
         /// </summary>
         private void HandleRoll()
         {
-            if (!Game.IsDisabledControlJustPressed(2, Control.LookBehind) || !PlayerCharacter.GetConfigFlag(60))
+            if (!Game.IsDisabledControlJustPressed(2, Control.LookBehind) || !PlayerCharacter.GetConfigFlag(60)
+                || (!PlayerCharacter.IsRunning && !PlayerCharacter.IsSprinting && !PlayerCharacter.IsGettingUp))
                 return;
 
-            var vel = PlayerCharacter.Velocity;
-
-            PlayerCharacter.Task.ClearAllImmediately();
+            if (PlayerCharacter.IsGettingUp || PlayerCharacter.IsRagdoll)
+                PlayerCharacter.Task.ClearAllImmediately();
+            else PlayerCharacter.Task.ClearAll();
 
             // Play the rolling animation.
             PlayerCharacter.Task.PlayAnimation("move_fall", "land_roll",
                 8.0f, -4.0f, 750, AnimationFlags.AllowRotation, 0.0f);
 
+            PlayerCharacter.Heading = Vector3.ProjectOnPlane(Quaternion.Euler(GameplayCamera.Rotation) * GetMovementVector(), 
+                Vector3.WorldUp).ToHeading();
+
             bool wasInv = PlayerCharacter.IsInvincible;
             bool wasColP = PlayerCharacter.IsCollisionProof;
             bool wasMelP = PlayerCharacter.IsMeleeProof;
             bool wasBP = PlayerCharacter.IsBulletProof;
+
             PlayerCharacter.IsInvincible = true;
             PlayerCharacter.IsCollisionProof = true;
             PlayerCharacter.IsMeleeProof = true;
             PlayerCharacter.IsBulletProof = true;
+
             var timer = 0.5f;
             while (!PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll") && timer > 0)
             {
                 timer -= Time.UnscaledDeltaTime;
                 Script.Yield();
             }
-
-            var peds = World.GetNearbyPeds(PlayerCharacter, 50f);
-            var acc = new List<int>();
-            while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll"))
+            while (PlayerCharacter.IsPlayingAnimation("move_fall", "land_roll") && GroundRay(out var normal))
             {
-                PlayerCharacter.Velocity = vel;
-
-                for (int i = 0; i < peds.Length; i++)
-                {
-                    var ped = peds[i];
-                    acc.Add(ped.Accuracy);
-                    ped.Accuracy = 0;
-                }
+                // First we need to get the direction we want.
+                var direction = Vector3.Cross(-PlayerCharacter.RightVector, normal);
+                direction.Normalize(); // We'll have to normalize this, just in case.
+                PlayerCharacter.Velocity = direction * 25f;
                 Script.Yield();
-            }
-            for (int i = 0; i < peds.Length; i++)
-            {
-                var ped = peds[i];
-                ped.Accuracy = acc[i];
             }
 
             PlayerCharacter.IsInvincible = wasInv;
@@ -206,10 +200,10 @@ namespace spiderman.net.Abilities
         /// Returns the movement vector as a vector2.
         /// </summary>
         /// <returns></returns>
-        private Vector2 GetMovementVector()
+        private Vector3 GetMovementVector()
         {
-            return new Vector2(Game.GetControlNormal(2, Control.MoveLeftRight),
-                -Game.GetControlNormal(2, Control.MoveUpDown));
+            return new Vector3(Game.GetControlNormal(2, Control.MoveLeftRight),
+                -Game.GetControlNormal(2, Control.MoveUpDown), 0f);
         }
     }
 }

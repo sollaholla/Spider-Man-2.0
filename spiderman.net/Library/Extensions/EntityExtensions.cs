@@ -156,6 +156,9 @@ namespace spiderman.net.Library.Extensions
         public static void AttachToEntity(this Entity entity1, Entity entity2, int boneIndex, Vector3 offset,
             Vector3 rotationOffset, bool softPin, bool collisions, bool isPed, int vertexIndex, bool lockRotation)
         {
+            if (entity1.IsAttached())
+                entity1.Detach();
+
             Function.Call(Hash.ATTACH_ENTITY_TO_ENTITY, entity1.Handle, entity2.Handle, boneIndex,
                 offset.X, offset.Y, offset.Z, rotationOffset.X, rotationOffset.Y, rotationOffset.Z, false, softPin,
                 collisions, isPed, vertexIndex, lockRotation);

@@ -146,6 +146,7 @@ namespace spiderman.net.Abilities
             {
                 // Detach the player.
                 cancelClimb = JumpOff(attachmentObject, 15);
+                PlayerCharacter.Task.Jump();
                 return;
             }
 
@@ -295,7 +296,7 @@ namespace spiderman.net.Abilities
                 var lookRotation = Maths.LookRotation(moveDirection, surfaceNormal);
                 attachmentObject.Quaternion = lookRotation;
 
-                var startCoords = attachmentObject.Position + attachmentObject.UpVector * 0.5f;
+                var startCoords = attachmentObject.Position + attachmentObject.UpVector * 0.8f;
                 var endCoords = startCoords + attachmentObject.ForwardVector;
                 var ray = WorldProbe.StartShapeTestCapsule(startCoords, endCoords, 0.25f, ShapeTestFlags.IntersectMap, null);
                 var res = ray.GetResult();

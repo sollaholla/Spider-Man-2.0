@@ -627,7 +627,7 @@ namespace spiderman.net.Abilities
             var localInput = Vector3.ProjectOnPlane(cameraRotation * inputDirection, Vector3.WorldUp); // Make sure this is flat.
 
             // We'll use this direction if there's no input direction.
-            var noInputDirection = Vector3.ProjectOnPlane(cameraRotation * Vector3.RelativeFront, Vector3.WorldUp);
+            var noInputDirection = Vector3.ProjectOnPlane(PlayerCharacter.ForwardVector, Vector3.WorldUp);
 
             // If the input direction is actually 
             // not empty then we're going to use that as the

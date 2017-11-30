@@ -62,6 +62,7 @@
     <Compile Include="Abilities\WallCrawl.cs" />
     <Compile Include="Abilities\WebAttachments.cs" />
     <Compile Include="Abilities\WebTech\MultiDisarm.cs" />
+    <Compile Include="Abilities\WebTech\WebGrenade.cs" />
     <Compile Include="Abilities\WebZip.cs" />
     <Compile Include="Abilities\WebSwing.cs" />
     <Compile Include="Abilities\StarkTech.cs" />
@@ -106,6 +107,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <Content Include="DLC\rope.png" />
     <Content Include="Spider-Man Files\InstantKill.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

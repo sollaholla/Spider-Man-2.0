@@ -103,10 +103,12 @@ namespace spiderman.net.Abilities.WebTech
             else if (entity is Ped ped)
             {
                 // Apply a significant force to the ped.
-                ped.Velocity = dir * 150f;
+                ped.Velocity = dir * 75;
+
+                var damage = 5000f / 45f;
 
                 // Shock the ped.
-                Utilities.ShockPed(ped, 200);
+                Utilities.ShockPed(ped, (int)damage);
             }
 
             // Set the amount of time for slowmo.
