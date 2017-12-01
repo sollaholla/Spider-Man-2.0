@@ -28,7 +28,7 @@ namespace SpiderMan
         /// <summary>
         ///     Used for initialization the first time our tick method is called.
         /// </summary>
-        private bool _initialized;
+        private bool _initAbilities;
 
         /// <summary>
         ///     Called the first tick.
@@ -89,7 +89,7 @@ namespace SpiderMan
                 // Set the new ped.
                 SetPlayerCharacter();
                 StopAllAbilities();
-                _initialized = false;
+                _initAbilities = false;
             }
 
             // Stop the player from using/having a parachute.
@@ -97,7 +97,13 @@ namespace SpiderMan
 
             // Initialize our abilities.
             Init();
+            UpdateAbilities();
+        }
 
+        private void UpdateAbilities()
+        {
+            // If the gameplay camera is not rendering (menyoo spooner for example),
+            // then just return until otherwise.
             if (!GameplayCamera.IsRendering)
                 return;
 
@@ -124,27 +130,34 @@ namespace SpiderMan
         }
 
         /// <summary>
-        ///     Here's where we initialize our abilities.
+        ///     Here's where we initialize our abilities and memory stuff.
         /// </summary>
         private void Init()
+        {
+            InitMemory();
+            InitAbilities();
+        }
+
+        private void InitAbilities()
+        {
+            if (_initAbilities) return;
+            _abilities = new List<SpecialAbility>
+            {
+                new Agility(),
+                new Melee(),
+                new StarkTech(),
+                new WallCrawl()
+            };
+            _initAbilities = true;
+        }
+
+        private void InitMemory()
         {
             if (!_initMemory)
             {
                 HandlingFile.Init();
                 CTimeScale.Init();
                 _initMemory = true;
-            }
-
-            if (!_initialized)
-            {
-                _abilities = new List<SpecialAbility>
-                {
-                    new Agility(),
-                    new Melee(),
-                    new StarkTech(),
-                    new WallCrawl()
-                };
-                _initialized = true;
             }
         }
     }
