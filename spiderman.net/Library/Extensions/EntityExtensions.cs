@@ -81,7 +81,7 @@ namespace spiderman.net.Library.Extensions
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <param name="position">The position.</param>
-        public static void SetPositionSafely(this Entity entity, Vector3 position)
+        public static void SetCoordsSafely(this Entity entity, Vector3 position)
         {
             Function.Call(Hash.SET_ENTITY_COORDS, entity.Handle, position.X, position.Y, position.Z, 0, 0, 0, false);
         }

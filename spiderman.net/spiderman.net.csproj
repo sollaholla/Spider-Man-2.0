@@ -50,16 +50,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Abilities\Agility.cs" />
-    <Compile Include="Abilities\Attributes\SerializableProperty.cs" />
     <Compile Include="Abilities\Attributes\WebTechAttribute.cs" />
     <Compile Include="Abilities\Melee.cs" />
     <Compile Include="Abilities\SpideySense.cs" />
-    <Compile Include="Abilities\Types\ManagedSettings.cs" />
-    <Compile Include="Abilities\Types\Profile.cs" />
     <Compile Include="Abilities\Types\TechSlot.cs" />
     <Compile Include="Abilities\Types\AttachmentInfo.cs" />
     <Compile Include="Abilities\WebTech\SpiderWeb.cs" />
-    <Compile Include="Abilities\WebTech\WebPunch.cs" />
     <Compile Include="Abilities\WebTech\TazerWebs.cs" />
     <Compile Include="Abilities\Types\Tech.cs" />
     <Compile Include="Abilities\WebTech\InstantKill.cs" />
@@ -92,7 +88,7 @@
     <Compile Include="Library\Particle.cs" />
     <Compile Include="Library\ParticleLooped.cs" />
     <Compile Include="Library\RandomExtensions.cs" />
-    <Compile Include="Library\GTARope.cs" />
+    <Compile Include="Library\Rope.cs" />
     <Compile Include="Library\ScreenEffect.cs" />
     <Compile Include="Library\SelectorWheel.cs" />
     <Compile Include="Library\SimpleUI.cs" />

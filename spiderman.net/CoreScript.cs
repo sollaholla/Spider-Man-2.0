@@ -1,13 +1,11 @@
 ﻿using GTA;
 using GTA.Native;
 using ScriptCommunicatorHelper;
-using SimpleUI;
 using spiderman.net.Abilities;
-using spiderman.net.Abilities.Types;
 using spiderman.net.Library;
+using spiderman.net.Library.Extensions;
 using spiderman.net.Library.Memory;
 using System.Collections.Generic;
-using System.IO;
 
 /// <summary>
 /// Credits: 
@@ -33,16 +31,6 @@ namespace spiderman.net
         private List<SpecialAbility> _abilities = new List<SpecialAbility>();
 
         /// <summary>
-        /// The main menu.
-        /// </summary>
-        private readonly UIMenu _mainMenu = new UIMenu("Spider-Man V");
-
-        /// <summary>
-        /// The menu processor.
-        /// </summary>
-        private readonly MenuPool _menuPool = new MenuPool();
-
-        /// <summary>
         /// Used for initialization the first time our tick method is called.
         /// </summary>
         private bool _initialized;
@@ -62,11 +50,6 @@ namespace spiderman.net
             Aborted += OnAborted;
             Interval = 0;
 
-            PlayerProfile = new ProfileSettings();
-            if (!File.Exists(PlayerProfile.Path))
-                PlayerProfile.Write();
-            else PlayerProfile.Read();
-
             _scriptComms.Init("Spider-Man V", "by Sollaholla");
         }
 
@@ -74,16 +57,6 @@ namespace spiderman.net
         /// The local player's character component.
         /// </summary>
         public static Ped PlayerCharacter { get; private set; }
-
-        /// <summary>
-        /// The player's profile settings.
-        /// </summary>
-        public static ProfileSettings PlayerProfile { get; private set; }
-
-        /// <summary>
-        /// True if the mod is ready to be used.
-        /// </summary>
-        public static bool ModEnabled { get; private set; }
 
         /// <summary>
         /// Called when the mod is reloaded / crashed.
@@ -117,15 +90,19 @@ namespace spiderman.net
             {
                 // Set the new ped.
                 PlayerCharacter = Game.Player.Character;
-                PlayerCharacter.MaxHealth = PlayerProfile.MaxHealth;
-                PlayerCharacter.Health = PlayerProfile.MaxHealth;
+                PlayerCharacter.MaxHealth = 3000;
+                PlayerCharacter.Health = 3000;
                 StopAllAbilities();
-                ConfigurePlayer();
                 _initialized = false;
             }
+            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 1000f);
 
-            // Update the menus.
-            UpdateMenus();
+            // Make sure the player doesn't have parachutes..
+            Function.Call(Hash.SET_PLAYER_HAS_RESERVE_PARACHUTE, Game.Player.Handle, false);
+
+            // Remove the player parachute.
+            if (PlayerCharacter.Weapons.HasWeapon(WeaponHash.Parachute))
+                PlayerCharacter.Weapons.Remove(WeaponHash.Parachute);
 
             // Initialize our abilities.
             Init();
@@ -136,27 +113,6 @@ namespace spiderman.net
             // Now we need to update each of these abilities.
             foreach (var ability in _abilities)
                 ability.Update();
-        }
-
-        private void UpdateMenus()
-        {
-            _menuPool.ProcessMenus();
-            if (_scriptComms.IsEventTriggered())
-            {
-                _mainMenu.IsVisible = !_mainMenu.IsVisible;
-            }
-        }
-
-        /// <summary>
-        /// Configures some default values for the player.
-        /// </summary>
-        private static void ConfigurePlayer()
-        {
-            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, PlayerProfile.HealthRechargeMultiplier);
-            Function.Call(Hash.SET_PLAYER_HAS_RESERVE_PARACHUTE, Game.Player.Handle, false);
-            Function.Call((Hash)0xC388A0F065F5BC34, Game.Player.Handle, 1f);
-            if (PlayerCharacter.Weapons.HasWeapon(WeaponHash.Parachute))
-                PlayerCharacter.Weapons.Remove(WeaponHash.Parachute);
         }
 
         /// <summary>

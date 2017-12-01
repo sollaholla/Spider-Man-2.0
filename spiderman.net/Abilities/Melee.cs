@@ -221,7 +221,7 @@ namespace spiderman.net.Abilities
                         }
 
                         return true;
-                    },
+                    }, 
                     null);
 
                     // Detach the vehicle if needed.
@@ -482,39 +482,34 @@ namespace spiderman.net.Abilities
                             switch (entityType)
                             {
                                 case EntityType.Object:
-                                    {
-                                        Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
-                                    }
+                                    entityHit.Velocity = currentDirection * 15f;
+                                    Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
                                     break;
                                 case EntityType.Ped:
+                                    var ped = (Ped)entityHit;
+                                    const int damage = (int)(5000 / 70);
+                                    ped.ApplyDamage(damage);
+                                    if (!ped.IsDead)
+                                        ped.Task.ClearAllImmediately();
+                                    ped.SetToRagdoll(0);
+                                    var timer = 0.2f;
+                                    while (!ped.IsRagdoll && timer > 0)
                                     {
-                                        var ped = (Ped)entityHit;
-                                        const int damage = (int)(5000 / 70);
-                                        ped.ApplyDamage(damage);
-                                        if (!ped.IsDead)
-                                            ped.Task.ClearAllImmediately();
-                                        ped.SetToRagdoll(0);
-                                        var timer = 0.2f;
-                                        while (!ped.IsRagdoll && timer > 0)
-                                        {
-                                            timer -= Time.UnscaledDeltaTime;
-                                            Script.Yield();
-                                        }
-                                        Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
+                                        timer -= Time.UnscaledDeltaTime;
+                                        Script.Yield();
                                     }
+                                    ped.Velocity = currentDirection * 15f;
+                                    Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
                                     break;
                                 case EntityType.Vehicle:
-                                    {
-                                        var vehicle = (Vehicle)entityHit;
-                                        var vehOffset = vehicle.GetOffsetFromWorldCoords(result.EndCoords);
-                                        vehicle.ApplyForce(ForceFlags.StrongForce, currentDirection * 17808.69f, offset, 0, false, false, false);
-                                        vehicle.SetDamage(vehOffset, 2500, 5000);
-                                        Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "KNUCKLE_DUSTER_COMBAT_PED_HIT_BODY"));
-                                    }
+                                    var vehicle = (Vehicle)entityHit;
+                                    vehicle.ApplyForce(ForceFlags.StrongForce, currentDirection * 17808.69f,
+                                        offset, 0, false, false, false);
+                                    var vehOffset = vehicle.GetOffsetFromWorldCoords(result.EndCoords);
+                                    vehicle.SetDamage(vehOffset, 2500, 5000);
+                                    Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "KNUCKLE_DUSTER_COMBAT_PED_HIT_BODY"));
                                     break;
                             }
-
-                            if (entityHit != null && entityType != EntityType.Vehicle) entityHit.Velocity = currentDirection * 15f;
                             DamagedEntity?.Invoke(this, new EventArgs(), entity, entity?.Position + offset ?? Vector3.Zero);
                             PlayerCharacter.Velocity /= 4;
                             break;

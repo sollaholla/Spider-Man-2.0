@@ -3,7 +3,7 @@ using GTA.Math;
 using spiderman.net.Library;
 using spiderman.net.Library.Extensions;
 using System.Drawing;
-using GTARope = spiderman.net.Library.GTARope;
+using Rope = spiderman.net.Library.Rope;
 using System;
 using System.Collections.Generic;
 using spiderman.net.Scripts;
@@ -84,13 +84,6 @@ namespace spiderman.net.Abilities
                     // Clear the player tasks.
                     PlayerCharacter.Task.ClearAll();
 
-                    // NOTE: I'm not sure why clearing the player's tasks
-                    // crashes the game, but it seems like moving the player's
-                    // position fixes that issue by immediately clearing every "task"
-                    // the player has.
-                    var pos = PlayerCharacter.Position;
-                    PlayerCharacter.Position = pos;
-
                     // Attach the player to the helper prop.
                     PlayerCharacter.AttachToEntity(rotationHelper, 0, new Vector3(0, -0.25f, -1.15f),
                         Vector3.Zero, false, false, true, 0, true);
@@ -115,11 +108,12 @@ namespace spiderman.net.Abilities
                     var initialLength = Vector3.Distance(rotationHelper.Position, hitPoint);
                     if (initialLength <= 0)
                         initialLength = 1;
-                    var rope = GTARope.AddRope(rotationHelper.Position, initialLength,
+                    var rope = Rope.AddRope(rotationHelper.Position, initialLength,
                         GTARopeType.ThickRope, initialLength, initialLength - 0.1f, true, false);
 
                     // Attach the two helpers.
                     rope.AttachEntities(rotationHelper, Vector3.Zero, webHitHelper, Vector3.Zero, initialLength);
+                    rope.ActivatePhysics();
 
                     // Init a rotation.
                     var initalDirection = Vector3.ProjectOnPlane(GameplayCamera.Direction,
@@ -159,7 +153,6 @@ namespace spiderman.net.Abilities
                             PlayerCharacter.Quaternion.Normalize();
                             Audio.ReleaseSound(Audio.PlaySoundFromEntity(PlayerCharacter, "DLC_Exec_Office_Non_Player_Footstep_Mute_group_MAP"));
                             GTAGraphics.StartParticle("core", "ent_dst_dust", PlayerCharacter.Position, PlayerCharacter.Rotation, 1f);
-                            Script.Yield();
                             break;
                         }
 
@@ -168,7 +161,6 @@ namespace spiderman.net.Abilities
                         {
                             // The swing was canceled.
                             WebZip.OverrideFallHeight(float.MaxValue);
-                            Script.Yield();
                             break;
                         }
 
@@ -177,7 +169,6 @@ namespace spiderman.net.Abilities
                         if (Game.IsDisabledControlJustReleased(2, Control.Attack))
                         {
                             ReleaseWebToAir(-1);
-                            Script.Yield();
                             break;
                         }
 
@@ -243,15 +234,12 @@ namespace spiderman.net.Abilities
                         if (angle > 70)
                         {
                             ReleaseWebToAir(0);
-                            Script.Yield();
                             break;
                         }
 
                         // Yield the script.
                         Script.Yield();
                     }
-
-                    Script.Yield();
 
                     // Reset the cooldown!
                     _webSwingCooldown = 0.7f;

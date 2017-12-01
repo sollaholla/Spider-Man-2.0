@@ -105,7 +105,7 @@ namespace spiderman.net.Abilities.WebTech
                 // Apply a significant force to the ped.
                 ped.Velocity = dir * 75;
 
-                var damage = 5000f / 75f;
+                var damage = 5000f / 45f;
 
                 // Shock the ped.
                 Utilities.ShockPed(ped, (int)damage);
@@ -133,12 +133,12 @@ namespace spiderman.net.Abilities.WebTech
             while (time > 0f)
             {
                 // Every 4 loops spawn a bolt of electricity.
-                if (count % 10 == 0 && hitCoords != Vector3.Zero)
+                if (count % 4 == 0 && hitCoords != Vector3.Zero)
                 {
                     if (!burstShock)
                     {
                         // Play a shock particle on nearby entities.
-                        var entities = World.GetNearbyPeds(PlayerCharacter, 25);
+                        var entities = World.GetNearbyEntities(PlayerCharacter.Position, 15);
                         for (int i = 0; i < entities.Length; i++)
                         {
                             var ent = entities[i];

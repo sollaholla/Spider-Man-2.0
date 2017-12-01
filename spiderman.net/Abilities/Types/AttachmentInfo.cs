@@ -1,13 +1,13 @@
 ﻿using GTA;
 using GTA.Math;
 using spiderman.net.Library.Extensions;
-using GTARope = spiderman.net.Library.GTARope;
+using Rope = spiderman.net.Library.Rope;
 
 namespace spiderman.net.Abilities.Types
 {
     public class AttachmentInfo
     {
-        public AttachmentInfo(Entity entity1, Entity entity2, GTARope rope)
+        public AttachmentInfo(Entity entity1, Entity entity2, Rope rope)
         {
             Entity1 = entity1;
             Entity2 = entity2;
@@ -16,7 +16,7 @@ namespace spiderman.net.Abilities.Types
 
         public Entity Entity1 { get; }
         public Entity Entity2 { get; }
-        public GTARope Rope { get; }
+        public Rope Rope { get; }
         public bool Terminated { get; private set; }
 
         public void ProcessAttachment(Vector3 referenceCoords)

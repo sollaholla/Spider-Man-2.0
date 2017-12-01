@@ -4,7 +4,7 @@ using GTA;
 using spiderman.net.Library.Extensions;
 using GTA.Math;
 using System.Collections.Generic;
-using GTARope = spiderman.net.Library.GTARope;
+using Rope = spiderman.net.Library.Rope;
 using spiderman.net.Scripts;
 
 namespace spiderman.net.Abilities
@@ -44,7 +44,7 @@ namespace spiderman.net.Abilities
         {
             // Make sure to request rope textures,
             // if they haven't already loaded.
-            GTARope.LoadTextures();
+            Rope.LoadTextures();
 
             // Request our animations.
             Streaming.RequestAnimationDictionary("weapons@projectile@");
@@ -96,7 +96,7 @@ namespace spiderman.net.Abilities
         /// <summary>
         /// Catch our landing so we don't die from high falls.
         /// </summary>
-        private bool CheckFallAndCatchLanding(GTARope r = null)
+        private bool CheckFallAndCatchLanding(Rope r = null)
         {
             // If the player is falling then...
             if (PlayerCharacter.IsFalling)
@@ -121,10 +121,8 @@ namespace spiderman.net.Abilities
                 inputVector = PlayerCharacter.ForwardVector;
             }
 
-            var gHit = false;
-
             // Catch our landing at high falls.
-            if (PlayerCharacter.GetConfigFlag(60) || (gHit = PlayerCharacter.HeightAboveGround < 2f))
+            if (PlayerCharacter.GetConfigFlag(60) || PlayerCharacter.HeightAboveGround < 1.5f)
             {
                 // Check the fall height, catch the landing,
                 // and reset the fall height.
@@ -133,14 +131,6 @@ namespace spiderman.net.Abilities
                 {
                     // Try to catch our landing.
                     r?.Delete();
-                    if (gHit && Game.GetControlNormal(2, Control.MoveLeftRight) == 0f &&
-                        Game.GetControlNormal(2, Control.MoveUpDown) == 0f)
-                    {
-                        var pos = PlayerCharacter.Position;
-                        var gHeight = World.GetGroundHeight(pos);
-                        pos.Z -= PlayerCharacter.HeightAboveGround;
-                        PlayerCharacter.SetPositionSafely(pos);
-                    }
                     CatchLanding();
                     CaughtLanding?.Invoke(this, new EventArgs(), _fallHeight);
                     _fallHeight = 0f;
@@ -202,7 +192,7 @@ namespace spiderman.net.Abilities
                 PlayerCharacter.Velocity = directionToPoint * speed;
 
                 // Initialize our rope variable.
-                GTARope rope = null;
+                Rope rope = null;
 
                 // Wait until the player is no longer on the ground.
                 GameWaiter.DoWhile(100, () => PlayerCharacter.GetConfigFlag(60), () =>
@@ -222,8 +212,6 @@ namespace spiderman.net.Abilities
                     PlayerCharacter.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
                 }
 
-                GameWaiter.Wait(150);
-
                 GameWaiter.DoWhile(700, () =>
                 {
                     if (PlayerCharacter.HasCollidedWithAnything)
@@ -240,7 +228,7 @@ namespace spiderman.net.Abilities
                     {
                         // Get the inital distance to the target.
                         var initialDist = rHand.DistanceTo(targetPoint);
-                        rope = GTARope.AddRope(rHand, initialDist, GTARopeType.ThickRope, initialDist / 2, 0.1f, true, false);
+                        rope = Rope.AddRope(rHand, initialDist, GTARopeType.ThickRope, initialDist / 2, 0.1f, true, false);
                     }
 
                     // Check if the player is playing the grapple animation.
@@ -267,7 +255,7 @@ namespace spiderman.net.Abilities
                 PlayerCharacter.Task.ClearAnimation("weapons@projectile@", "throw_m_fb_stand");
 
                 // Destroy the rope here.
-                if (GTARope.Exists(rope))
+                if (Rope.Exists(rope))
                 {
                     rope.Delete();
                 }
@@ -424,7 +412,7 @@ namespace spiderman.net.Abilities
                     initialTargetDirection.Normalize();
 
                     // The collection of rops we will use as webs.
-                    List<GTARope> ropes = new List<GTARope>();
+                    List<Rope> ropes = new List<Rope>();
 
                     // The delay that we use to delete the ropes.
                     var ropeDeleteDelay = 0.75f;
@@ -457,7 +445,7 @@ namespace spiderman.net.Abilities
         private bool GrappleToVehicle(
             Vehicle vehicle, bool twoHandedAnim, 
             ref Vector3 targetDirection, float elapsedTime, 
-            Vector3 initialTargetDirection, List<GTARope> ropes, 
+            Vector3 initialTargetDirection, List<Rope> ropes, 
             ref float ropeDeleteDelay)
         {
             // Two handed web logic...
@@ -519,9 +507,9 @@ namespace spiderman.net.Abilities
                         // Create the left and right hand ropes for two hand web jump.
                         var lHandDistance = Vector3.Distance(lHand, vehicle.Position);
                         var rHandDistance = Vector3.Distance(rHand, vehicle.Position);
-                        var rope1 = GTARope.AddRope(lHand, lHandDistance, GTARopeType.ThickRope,
+                        var rope1 = Rope.AddRope(lHand, lHandDistance, GTARopeType.ThickRope,
                             lHandDistance / 2, 0.1f, true, false);
-                        var rope2 = GTARope.AddRope(rHand, rHandDistance, GTARopeType.ThickRope,
+                        var rope2 = Rope.AddRope(rHand, rHandDistance, GTARopeType.ThickRope,
                             rHandDistance / 2, 0.1f, true, false);
 
                         // Add the ropes to the rope collection.
@@ -590,7 +578,7 @@ namespace spiderman.net.Abilities
                         // The distance to the target
                         // will be used as the rope length.
                         var dist = Vector3.Distance(rHand, vehicle.Position);
-                        var rope = GTARope.AddRope(rHand, dist, GTARopeType.ThickRope, dist / 2, 0.1f, true, false);
+                        var rope = Rope.AddRope(rHand, dist, GTARopeType.ThickRope, dist / 2, 0.1f, true, false);
                         ropes.Add(rope);
                     }
                     // The rope is there.
@@ -694,7 +682,7 @@ namespace spiderman.net.Abilities
         /// Despawns the specified ropes.
         /// </summary>
         /// <param name="ropes">The ropes to despawn.</param>
-        private static void DespawnRopes(List<GTARope> ropes)
+        private static void DespawnRopes(List<Rope> ropes)
         {
             foreach (var rope in ropes)
             {
