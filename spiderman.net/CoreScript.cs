@@ -38,7 +38,7 @@ namespace SpiderMan
         /// <summary>
         ///     The script communicator. (used by the script communicator menu)
         /// </summary>
-        private readonly ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
+        //private readonly ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
 
         /// <summary>
         ///     The main constructor.
