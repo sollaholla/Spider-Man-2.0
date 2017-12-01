@@ -43,6 +43,16 @@ namespace spiderman.net.Library.Extensions
                 offset.X, offset.Y, offset.Z, rotation.X, rotation.Y, rotation.Z, (int)bone, scale, xAxis, yAxis, zAxis));
         }
 
+        /// <summary>
+        /// Face our heading to look at the specified entity.
+        /// </summary>
+        /// <param name="ped"></param>
+        /// <param name="other"></param>
+        public static void FaceEntity(this Ped ped, Entity other)
+        {
+            ped.Heading = (other.Position - ped.Position).ToHeading();
+        }
+
         //public static void foo()
         //{
         //    Hash.REQUEST_ADDITIONAL_COLLISION_AT_COORD

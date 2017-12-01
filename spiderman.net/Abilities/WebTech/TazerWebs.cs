@@ -1,7 +1,7 @@
 ﻿using GTA;
 using spiderman.net.Library;
 using System.Collections.Generic;
-using Rope = spiderman.net.Library.Rope;
+using GTARope = spiderman.net.Library.GTARope;
 using GTA.Math;
 using spiderman.net.Library.Extensions;
 using spiderman.net.Scripts;
@@ -61,7 +61,7 @@ namespace spiderman.net.Abilities.WebTech
                         (AnimationFlags)40, 0.0f);
 
                     var playerBone = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
-                    var rope = Rope.AddRope(playerBone, distance, GTARopeType.ThickRope, 0.2f, 0.1f, true, false);
+                    var rope = GTARope.AddRope(playerBone, distance, GTARopeType.ThickRope, 0.2f, 0.1f, true, false);
                     var timer = 2.0f;
                     var counter = 0;
 

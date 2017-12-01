@@ -82,7 +82,7 @@ namespace spiderman.net.Abilities
                     // Let's set the velocity to the direction 
                     // multiplied by our desired speed.
                     case PlayerState.Run:
-                        PlayerCharacter.Velocity = direction * desiredSpeed / 2; // dividing by 2 so running is slower.
+                        PlayerCharacter.Velocity = direction * desiredSpeed * 0.5f; // dividing by 2 so running is slower.
                         break;
                     case PlayerState.Sprint:
                         PlayerCharacter.Velocity = direction * desiredSpeed;

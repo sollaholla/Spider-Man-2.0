@@ -113,7 +113,7 @@ namespace spiderman.net.Abilities
                     {
                         PlayerCharacter.Task.Skydive();
                         PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
-                            2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
+                            2.0f, -4.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
                         PlayerCharacter.Velocity = Vector3.WorldUp * 25f;
                         WebZip.OverrideFallHeight(float.MaxValue);
                         GameWaiter.Wait(100);

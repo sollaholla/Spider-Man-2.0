@@ -18,7 +18,7 @@ namespace spiderman.net.Library
     /// <summary>
     /// The rope class that properly implements methods used to manipulate ropes.
     /// </summary>
-    public class Rope : IHandleable
+    public class GTARope : IHandleable
     {
         /// <summary>
         /// A bool that acts as a helper to determine 
@@ -30,7 +30,7 @@ namespace spiderman.net.Library
         /// Our main constructor.
         /// </summary>
         /// <param name="handle"></param>
-        public Rope(int handle)
+        public GTARope(int handle)
         {
             Handle = handle;
         }
@@ -264,7 +264,7 @@ namespace spiderman.net.Library
         /// <param name="rigid">Whether or not this rope starts out with physics enabled.</param>
         /// <param name="breakWhenShot">Whether or not this rope can be broken by firearms.</param>
         /// <returns></returns>
-        public static Rope AddRope(Vector3 startPosition, float initialLength, GTARopeType type,
+        public static GTARope AddRope(Vector3 startPosition, float initialLength, GTARopeType type,
             float maximumLength, float minimumLength, bool rigid, bool breakWhenShot)
         {
             LoadTextures();
@@ -272,7 +272,7 @@ namespace spiderman.net.Library
             unsafe
             {
                 int ptr = 0;
-                return new Rope(Function.Call<int>(Hash.ADD_ROPE,
+                return new GTARope(Function.Call<int>(Hash.ADD_ROPE,
                     startPosition.X, startPosition.Y, startPosition.Z,
                     0f, 0f, 0f,
                     initialLength,
@@ -318,7 +318,7 @@ namespace spiderman.net.Library
         /// </summary>
         /// <param name="rope"></param>
         /// <returns></returns>
-        public static bool Exists(Rope rope)
+        public static bool Exists(GTARope rope)
         {
             return rope != null && rope.Exists();
         }

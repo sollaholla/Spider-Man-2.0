@@ -3,7 +3,7 @@ using GTA.Math;
 using GTA.Native;
 using spiderman.net.Library;
 using spiderman.net.Library.Extensions;
-using Rope = spiderman.net.Library.Rope;
+using GTARope = spiderman.net.Library.GTARope;
 using System.Collections.Generic;
 using System.Drawing;
 using System;
@@ -27,7 +27,7 @@ namespace spiderman.net.Abilities
         /// The rope created that attaches the web shooter to the 
         /// targetted entity.
         /// </summary>
-        private Rope _webShooterRope;
+        private GTARope _webShooterRope;
 
         /// <summary>
         /// The entity currently attached to our web shooter.
@@ -64,7 +64,7 @@ namespace spiderman.net.Abilities
         /// </summary>
         private bool Attached {
             get {
-                return Entity.Exists(_ropeAttachedEntity) && Rope.Exists(_webShooterRope);
+                return Entity.Exists(_ropeAttachedEntity) && GTARope.Exists(_webShooterRope);
             }
         }
 
@@ -93,7 +93,7 @@ namespace spiderman.net.Abilities
                     _webShooterHelper.Delete();
 
                 // Delete the web shooter rope.
-                if (Rope.Exists(_webShooterRope))
+                if (GTARope.Exists(_webShooterRope))
                     _webShooterRope.Delete();
             }
         }
@@ -280,10 +280,10 @@ namespace spiderman.net.Abilities
             return entity;
         }
 
-        private Rope AttachRopeAttachedEntityToEntity(Entity entity)
+        private GTARope AttachRopeAttachedEntityToEntity(Entity entity)
         {
             var length = Math.Min(Vector3.Distance(entity.Position, _ropeAttachedEntity.Position) / 2, 7.5f);
-            var rope = Rope.AddRope(entity.Position, length, GTARopeType.ThickRope, length, 0.1f, true, false);
+            var rope = GTARope.AddRope(entity.Position, length, GTARopeType.ThickRope, length, 0.1f, true, false);
             rope.AttachEntities(entity, Vector3.Zero, _ropeAttachedEntity, Vector3.Zero, length);
             rope.ActivatePhysics();
             PlayerCharacter.PlayAimAnim(entity);
@@ -313,7 +313,7 @@ namespace spiderman.net.Abilities
         private void FrontFlip()
         {
             PlayerCharacter.Task.ClearAllImmediately();
-            PlayerCharacter.Velocity = Vector3.WorldUp * 15f;
+            GameWaiter.DoWhile(() => PlayerCharacter.GetConfigFlag(60), () => PlayerCharacter.Velocity = Vector3.WorldUp * 15f);
             PlayerCharacter.SetConfigFlag(60, false);
             GameWaiter.Wait(10);
             WebZip.OverrideFallHeight(float.MaxValue);
@@ -336,7 +336,6 @@ namespace spiderman.net.Abilities
             _webShooterHelper?.Delete();
             PlayerCharacter.Task.ClearAnimation("amb@code_human_wander_texting@male@base", "static");
             PlayerCharacter.Task.ClearAnimation("move_crouch_proto", "idle_intro");
-            GameWaiter.Wait(200);
         }
 
         private void OnShotWeb(Entity webShooterHelper, Entity entityHit)
@@ -346,7 +345,7 @@ namespace spiderman.net.Abilities
 
             // Create the rope between the entity hit,
             // and the web shooter helper.
-            _webShooterRope = Rope.AddRope(webShooterHelper.Position, _initialWebLength, GTARopeType.ThickRope,
+            _webShooterRope = GTARope.AddRope(webShooterHelper.Position, _initialWebLength, GTARopeType.ThickRope,
                 _initialWebLength, 0.1f, true, false);
 
             // Attach the entities together.
@@ -356,9 +355,7 @@ namespace spiderman.net.Abilities
         private void OnAimAtEntity(Entity entity)
         {
             PlayerCharacter.PlayAimAnim(entity);
-
-            // Wait 150 ms.
-            GameWaiter.Wait(150);
+            GameWaiter.Wait(100);
 
             // Now we need to spawn our web shooter helper.
             _webShooterHelper = CreateWebShooterHelper();

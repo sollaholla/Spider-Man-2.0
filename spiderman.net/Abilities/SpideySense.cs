@@ -23,6 +23,16 @@ namespace spiderman.net.Abilities
 
         private void OnTick(object sender, System.EventArgs e)
         {
+            if (!CoreScript.ModEnabled)
+            {
+                if (_spideySenseOn)
+                {
+                    Game.TimeScale = 1.0f;
+                    _spideySenseOn = false;
+                }
+                return;
+            }
+
             Game.DisableControlThisFrame(2, Control.SpecialAbility);
             Game.DisableControlThisFrame(2, Control.SpecialAbilityPC);
             Game.DisableControlThisFrame(2, Control.SpecialAbilitySecondary);
