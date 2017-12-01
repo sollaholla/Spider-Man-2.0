@@ -57,6 +57,7 @@ namespace spiderman.net
         /// </summary>
         public CoreScript()
         {
+
             Tick += OnTick;
             Aborted += OnAborted;
             Interval = 0;
