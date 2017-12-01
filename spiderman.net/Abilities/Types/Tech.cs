@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using GTA;
+using SpiderMan.Library.Modding;
 
 namespace SpiderMan.Abilities.Types
 {

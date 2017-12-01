@@ -4,6 +4,8 @@ using GTA;
 using GTA.Native;
 using SpiderMan.Abilities.SpecialAbilities;
 using SpiderMan.Library.Memory;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Modding.Stillhere;
 
 /// <summary>
 /// Credits: 

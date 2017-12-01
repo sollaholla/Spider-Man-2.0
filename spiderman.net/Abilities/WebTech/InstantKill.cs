@@ -6,6 +6,9 @@ using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.SpecialAbilities;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Extensions;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Types;
+using SpiderMan.ScriptThreads;
 
 namespace SpiderMan.Abilities.WebTech
 {

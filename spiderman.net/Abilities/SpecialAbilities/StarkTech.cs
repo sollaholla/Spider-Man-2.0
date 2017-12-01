@@ -8,6 +8,9 @@ using GTA.Math;
 using GTA.Native;
 using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.Types;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Modding.Stillhere;
+using SpiderMan.Library.Types;
 
 namespace SpiderMan.Abilities.SpecialAbilities
 {

@@ -1,6 +1,7 @@
 ﻿using GTA;
 using GTA.Math;
 using GTA.Native;
+using SpiderMan.Library.Types;
 
 namespace SpiderMan.Library.Extensions
 {

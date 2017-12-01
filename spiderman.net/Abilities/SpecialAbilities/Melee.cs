@@ -4,6 +4,9 @@ using GTA;
 using GTA.Math;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Memory;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Types;
+using SpiderMan.ScriptThreads;
 
 namespace SpiderMan.Abilities.SpecialAbilities
 {

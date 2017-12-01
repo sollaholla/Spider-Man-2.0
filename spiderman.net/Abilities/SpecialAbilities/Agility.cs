@@ -1,5 +1,8 @@
 ﻿using GTA;
 using GTA.Math;
+using SpiderMan.Library.Extensions;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Types;
 
 namespace SpiderMan.Abilities.SpecialAbilities
 {

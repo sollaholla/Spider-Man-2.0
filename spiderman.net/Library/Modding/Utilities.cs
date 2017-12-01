@@ -5,6 +5,8 @@ using GTA;
 using GTA.Math;
 using GTA.Native;
 using SpiderMan.Library.Extensions;
+using SpiderMan.Library.Types;
+using SpiderMan.ScriptThreads;
 
 namespace SpiderMan.Library.Modding
 {

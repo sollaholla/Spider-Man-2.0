@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using GTA;
 using GTA.Native;
+using SpiderMan.ScriptThreads;
 using Control = GTA.Control;
 using Font = GTA.Font;
 

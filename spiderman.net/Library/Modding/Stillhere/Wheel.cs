@@ -6,6 +6,7 @@ using System.Linq;
 using GTA;
 using GTA.Math;
 using GTA.Native;
+using SpiderMan.ScriptThreads;
 using Font = GTA.Font;
 
 #pragma warning disable 1587
@@ -407,8 +408,8 @@ namespace SpiderMan.Library.Modding.Stillhere
                     //UI.DrawTexture(TexturePath + UIHelper.MakeValidFileName(catTextureExists ? cat.Name : cat.SelectedItem.Name) + ".png", Categories.IndexOf(cat), 1, TextureRefreshRate, new Point((int)(cat.position2D.X * UI.WIDTH) + xTextureOffset, (int)(cat.position2D.Y * UI.HEIGHT) + yTextureOffset), new PointF(0.5f, 0.5f), TextureSize, 0f, isSelectedCategory ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(120, 255, 255, 255), aspectRatio);
                     Texture2D temp = catTextureExists ? cat.CategoryTexture : cat.SelectedItem.ItemTexture;
                     temp.Draw(1, TextureRefreshRate,
-                        new Point(cat.position2D.X * UI.WIDTH + xTextureOffset,
-                            cat.position2D.Y * UI.HEIGHT + yTextureOffset), new PointF(0.5f, 0.5f),
+                        new Point((int)(cat.position2D.X * UI.WIDTH + xTextureOffset),
+                            (int)(cat.position2D.Y * UI.HEIGHT + yTextureOffset)), new PointF(0.5f, 0.5f),
                         isSelectedCategory ? SizeMultiply(TextureSize, 1.25) : TextureSize, 0f,
                         isSelectedCategory ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(120, 255, 255, 255),
                         aspectRatio);

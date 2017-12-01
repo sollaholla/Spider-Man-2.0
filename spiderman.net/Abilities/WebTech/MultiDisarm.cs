@@ -4,6 +4,9 @@ using GTA.Math;
 using GTA.Native;
 using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.Types;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Types;
+using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
 namespace SpiderMan.Abilities.WebTech

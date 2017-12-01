@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using GTA;
 using GTA.Math;
 using SpiderMan.Library.Extensions;
+using SpiderMan.Library.Modding;
+using SpiderMan.Library.Types;
+using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
 namespace SpiderMan.Abilities.SpecialAbilities

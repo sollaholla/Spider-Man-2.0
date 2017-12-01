@@ -1,5 +1,6 @@
 ﻿using System;
 using GTA;
+using SpiderMan.ScriptThreads;
 
 namespace SpiderMan.Library.Types
 {

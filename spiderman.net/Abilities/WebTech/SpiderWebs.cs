@@ -2,6 +2,7 @@
 using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.SpecialAbilities;
 using SpiderMan.Abilities.Types;
+using SpiderMan.Library.Modding;
 
 namespace SpiderMan.Abilities.WebTech
 {
