@@ -121,7 +121,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                         WebZip.OverrideFallHeight(0f);
                     }
                     cancelClimb = true;
-                    break;
+//                    break;
                 }
 
                 // Set the surface position.
@@ -155,14 +155,16 @@ namespace SpiderMan.Abilities.SpecialAbilities
             if (Game.IsDisabledControlJustPressed(2, Control.Context))
             {
                 // Detach the player.
-                cancelClimb = JumpOff(attachmentObject, 15);
+                cancelClimb = true;
+                JumpOff(attachmentObject, 15);
                 PlayerCharacter.Task.Jump();
                 return;
             }
 
             if (Game.IsDisabledControlJustPressed(2, Control.Jump))
             {
-                cancelClimb = JumpOff(attachmentObject, 25);
+                cancelClimb = true;
+                JumpOff(attachmentObject, 25);
                 PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front", 8.0f, -4.0f, 500,
                     AnimationFlags.AllowRotation, 0.0f);
                 PlayerCharacter.Task.Skydive();
@@ -176,54 +178,51 @@ namespace SpiderMan.Abilities.SpecialAbilities
             }
         }
 
-        private bool JumpOff(Entity attachmentObject, float force)
+        private void JumpOff(Entity attachmentObject, float force)
         {
-            bool cancelClimb;
             var headingDir = attachmentObject.UpVector.ToHeading();
             DetachPlayer(attachmentObject);
             PlayerCharacter.Task.ClearAllImmediately();
             PlayerCharacter.Heading = headingDir;
             PlayerCharacter.Velocity = PlayerCharacter.ForwardVector * force;
-            cancelClimb = true;
-            return cancelClimb;
         }
 
-        private void RotateCam(Camera cam, Entity pivot, Entity target, ref float vert, ref float hori)
-        {
-            vert -=
-            (Game.IsControlEnabled(2, Control.LookLeftRight)
-                ? Game.GetControlNormal(2, Control.LookLeftRight)
-                : Game.GetDisabledControlNormal(2, Control.LookLeftRight)) * Time.UnscaledDeltaTime * 750f;
-
-            hori +=
-            (Game.IsControlEnabled(2, Control.LookUpDown)
-                ? Game.GetControlNormal(2, Control.LookUpDown)
-                : Game.GetDisabledControlNormal(2, Control.LookUpDown)) * Time.UnscaledDeltaTime * 750f;
-
-            hori = Maths.Clamp(hori, 5f, 89f);
-
-            var vertRot = Maths.AngleAxis(vert, target.UpVector);
-            var horiRot = Quaternion.Euler(hori, 0, 0);
-            var rotation = vertRot /* * horiRot*/;
-
-            pivot.Position = target.Position;
-            pivot.Quaternion = rotation;
-
-            var upDir = target.UpVector * 5f;
-            var downDir = -pivot.UpVector * 10f;
-            var targetCoords = pivot.Position + upDir + downDir;
-            var ray = WorldProbe.StartShapeTestRay(pivot.Position, targetCoords, ShapeTestFlags.IntersectMap, null);
-            var res = ray.GetResult();
-            var ex = Vector3.Zero;
-            var pivotDir = pivot.Position - cam.Position;
-            cam.Rotation = Maths.LookRotation(pivotDir, target.UpVector).ToEulerAngles();
-
-            if (res.Hit)
-                ex = res.EndCoords + pivotDir.Normalized * cam.NearClip * 2.1f;
-            else ex = targetCoords;
-
-            cam.Position = ex;
-        }
+//        private void RotateCam(Camera cam, Entity pivot, Entity target, ref float vert, ref float hori)
+//        {
+//            vert -=
+//            (Game.IsControlEnabled(2, Control.LookLeftRight)
+//                ? Game.GetControlNormal(2, Control.LookLeftRight)
+//                : Game.GetDisabledControlNormal(2, Control.LookLeftRight)) * Time.UnscaledDeltaTime * 750f;
+//
+//            hori +=
+//            (Game.IsControlEnabled(2, Control.LookUpDown)
+//                ? Game.GetControlNormal(2, Control.LookUpDown)
+//                : Game.GetDisabledControlNormal(2, Control.LookUpDown)) * Time.UnscaledDeltaTime * 750f;
+//
+//            hori = Maths.Clamp(hori, 5f, 89f);
+//
+//            var vertRot = Maths.AngleAxis(vert, target.UpVector);
+//            var horiRot = Quaternion.Euler(hori, 0, 0);
+//            var rotation = vertRot /* * horiRot*/;
+//
+//            pivot.Position = target.Position;
+//            pivot.Quaternion = rotation;
+//
+//            var upDir = target.UpVector * 5f;
+//            var downDir = -pivot.UpVector * 10f;
+//            var targetCoords = pivot.Position + upDir + downDir;
+//            var ray = WorldProbe.StartShapeTestRay(pivot.Position, targetCoords, ShapeTestFlags.IntersectMap, null);
+//            var res = ray.GetResult();
+//            var ex = Vector3.Zero;
+//            var pivotDir = pivot.Position - cam.Position;
+//            cam.Rotation = Maths.LookRotation(pivotDir, target.UpVector).ToEulerAngles();
+//
+//            if (res.Hit)
+//                ex = res.EndCoords + pivotDir.Normalized * cam.NearClip * 2.1f;
+//            else ex = targetCoords;
+//
+//            cam.Position = ex;
+//        }
 
         private void DoMovementAnimations(Prop attachmentObject, float speed)
         {
@@ -289,17 +288,14 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                 var targetMovementDir = Maths.LookRotation(camDirection, surfaceNormal) * movement;
                 targetMovementDir.Normalize();
-                if (lerp)
-                    moveDirection = Vector3.Lerp(moveDirection, targetMovementDir, Time.UnscaledDeltaTime * 5f);
-                else moveDirection = targetMovementDir;
+                moveDirection = lerp ? Vector3.Lerp(moveDirection, targetMovementDir, Time.UnscaledDeltaTime * 5f) : targetMovementDir;
 
                 var lookRotation = Maths.LookRotation(moveDirection, surfaceNormal);
                 attachmentObject.Quaternion = lookRotation;
 
-                var startCoords = attachmentObject.Position + attachmentObject.UpVector * 0.8f;
-                var endCoords = startCoords + attachmentObject.ForwardVector;
-                var ray = WorldProbe.StartShapeTestCapsule(startCoords, endCoords, 0.25f, ShapeTestFlags.IntersectMap,
-                    null);
+                var startCoords = attachmentObject.Position + surfaceNormal;
+                var endCoords = startCoords + attachmentObject.ForwardVector * 0.5f;
+                var ray = WorldProbe.StartShapeTestRay(startCoords, endCoords, ShapeTestFlags.IntersectMap, null);
                 var res = ray.GetResult();
 
                 if (!res.Hit)
@@ -313,12 +309,10 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// <summary>
         ///     Get the direction of input.
         /// </summary>
-        /// <param name="cameraRelative">True if this input is relative to the camera.</param>
+//        /// <param name="cameraRelative">True if this input is relative to the camera.</param>
         /// <returns></returns>
         private Vector3 GetMovementVector()
         {
-            var result = Vector3.Zero;
-
             var xMove =
                 Game.IsControlEnabled(2, Control.MoveLeftRight)
                     ? Game.GetControlNormal(2, Control.MoveLeftRight)
@@ -328,8 +322,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     ? Game.GetControlNormal(2, Control.MoveUpDown)
                     : Game.GetDisabledControlNormal(2, Control.MoveUpDown);
 
-            result = new Vector3(xMove, -yMove, 0);
-
+            var result = new Vector3(xMove, -yMove, 0);
             return result;
         }
 
