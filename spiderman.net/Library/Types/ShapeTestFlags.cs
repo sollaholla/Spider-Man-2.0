@@ -1,8 +1,11 @@
-﻿namespace SpiderMan.Library.Types
+﻿using System;
+
+namespace SpiderMan.Library.Types
 {
     /// <summary>
     ///     The flags that will determine what the raycasts check for.
     /// </summary>
+    [Flags]
     public enum ShapeTestFlags
     {
         IntersectMap = 1,

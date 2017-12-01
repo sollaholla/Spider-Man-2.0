@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using GTA;
 using GTA.Math;
+using GTA.Native;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Memory;
 using SpiderMan.Library.Modding;
@@ -19,25 +22,16 @@ namespace SpiderMan.Abilities.SpecialAbilities
         public delegate void OnDamagedEntity(object sender, EventArgs e, Entity entity, Vector3 hitCoords);
 
         /// <summary>
-        ///     This is our cooldown timer for the combo moves.
+        ///     Called when we melee attack any entity, after our punch landed.
         /// </summary>
-        private float _comboCooldown;
-
-        /// <summary>
-        ///     The index of the current combo move.
-        /// </summary>
-        private int _comboIndex;
+        public static event OnDamagedEntity DamagedEntity;
 
         /// <summary>
         ///     Helps us track what vehicle we've picked up.
         /// </summary>
         private Vehicle _currentPickupVehicle;
 
-        /// <summary>
-        ///     We'll use this to cache the attack direction
-        ///     for smoothing.
-        /// </summary>
-        private Vector3 _lastAttackDirection;
+        private int _comboIndex;
 
         /// <summary>
         ///     The main constructor.
@@ -51,11 +45,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
             Streaming.RequestAnimationDictionary("weapons@projectile@");
             PlayerCharacter.BlockPermanentEvents = true;
         }
-
-        /// <summary>
-        ///     Called when we melee attack any entity, after our punch landed.
-        /// </summary>
-        public static event OnDamagedEntity DamagedEntity;
 
         /// <summary>
         ///     Our update method.
@@ -254,374 +243,164 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// </summary>
         private void Attack()
         {
-            // We'll use this as the amount of 
-            // time we have to wait between attacks.
-            const float cooldown = 0.3f;
-
-            // Countdown the combo cooldown.
-            if (_comboCooldown < cooldown)
-            {
-                _comboCooldown += Time.DeltaTime;
-                return;
-            }
-
-            if (PlayerCharacter.IsRagdoll || PlayerCharacter.IsGettingUp ||
-                PlayerCharacter.IsInVehicle() || PlayerCharacter.IsGettingIntoAVehicle)
+            // Check if we pressed the attack button.
+            DisableControls();
+            if (!Game.IsDisabledControlPressed(2, Control.MeleeAttackAlternate) && 
+                !Game.IsControlPressed(2, Control.MeleeAttackAlternate))
                 return;
 
-            // Now we're going to get the closest entity to the player
-            // within our line of sight.
-            const float checkRadius = 10f; // We'll do 10 meters by default.
-            var entities = World.GetNearbyEntities(PlayerCharacter.Position, checkRadius);
+            // Now get the closest entity and validate it's type.
+            var targetEntity = GetClosestTarget(8);
+            //EntityType t;
+            if (targetEntity == null || targetEntity.GetEntityType() == EntityType.Object) return;
 
-            // This will be our attack direction.
-            _lastAttackDirection = GetAttackDirection();
-
-            // This is the maximum dot product that the entity delta can
-            // be from the attack direction.
-            const float minDotProduct = 0.5f;
-
-            // Draw a line to represent the attach direction.
-            //GameGraphics.DrawLine(PlayerCharacter.Position, PlayerCharacter.Position + _lastAttackDirection, Color.Blue);
-
-            // Make sure there where actually entities found.
-            if (entities.Length > 0)
-            {
-                // Now we're going to trim out the entities.
-                var closeEntities = GetEntitesThatCanBeAttacked(entities, minDotProduct);
-
-                // Let's make sure there's entities that
-                // are in the list first.
-                if (closeEntities.Count > 0)
-                {
-                    // Now let's get the closest entity.
-                    var closest = Utilities.GetClosestEntity(PlayerCharacter, closeEntities);
-
-                    // Make sure that the closest entity exists.
-                    if (closest != null)
-                        if (Game.IsDisabledControlPressed(2, Control.MeleeAttackAlternate))
-                            InitiateAttack(closest, Vector3.Zero);
-                }
-                else if (Game.IsDisabledControlPressed(2, Control.MeleeAttackAlternate) &&
-                         PlayerCharacter.GetConfigFlag(60))
-                {
-                    var attackPos = PlayerCharacter.Position + _lastAttackDirection * 50f;
-                    InitiateAttack(null, attackPos);
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Checks an array of entities and returns a list of entities that can be attacked.
-        /// </summary>
-        /// <param name="entities">The initial entities to check.</param>
-        /// <param name="minDotProduct">The minimum dot product from the players forward vector, to the entity delta.</param>
-        /// <returns></returns>
-        private List<Entity> GetEntitesThatCanBeAttacked(Entity[] entities, float minDotProduct)
-        {
-            var closeEntities = new List<Entity>();
-            for (var i = 0; i < entities.Length; i++)
-            {
-                // Let's grab the entity at this index in the original array.
-                var entity = entities[i];
-
-                // Make sure this entity is not the player.
-                if (entity.Handle == PlayerCharacter.Handle)
-                    continue;
-
-                // Get the entity type, and make sure it's a ped / vehicle.
-                var entityType = entity.GetEntityType();
-                if (entityType == EntityType.Object || entityType == EntityType.None)
-                    continue;
-
-                // Now let's check if the entity is within line of sight.
-                var entityDelta = entity.Position - PlayerCharacter.Position;
-
-                // Normalize the vector.
-                entityDelta.Normalize();
-
-                // Check the dot product.
-                if (Vector3.Dot(_lastAttackDirection, entityDelta) > minDotProduct)
-                    closeEntities.Add(entity);
-            }
-
-            // Return the entities that are valid.
-            return closeEntities;
-        }
-
-        /// <summary>
-        ///     Initiates an attack on the specified entity.
-        /// </summary>
-        /// <param name="entity"></param>
-        private void InitiateAttack(Entity entity, Vector3 referencePosition)
-        {
-            // Get a random combonation (combo) move.
-            _comboIndex = (_comboIndex + 1) % 2;
-
-            // This the attack animation we're going to use.
-            var animationName = string.Empty;
-            var animationDict = string.Empty;
-            var bone = Bone.SKEL_R_Hand;
-            var attackStart = GetAnimationForComboMove(_comboIndex, ref animationName,
-                ref animationDict, ref bone);
-            //UI.ShowSubtitle(combonation.ToString());
-
-            // This is the max time we can be in this loop.
-            const float maxLoopTime = 0.5f;
-
-            // This is our timer variable that
-            // we will use for the countdown.
-            var loopTimer = 0f;
-
-            // The meters per second acceleration that
-            // the player will move towards the entity.
-            const float acceleration = 30f;
-
-            var wasInAir = false;
-
+            //int ms = 0;
+            PlayerCharacter.IsCollisionProof = true;
+            PlayerCharacter.IsMeleeProof = true;
             PlayerCharacter.Task.ClearAll();
+            PlayerCharacter.Velocity = Vector3.Zero;
+            Function.Call(Hash.SET_ENTITY_RECORDS_COLLISIONS, PlayerCharacter.Handle, false);
+            WebZip.OverrideFallHeight(0f);
 
-            // Clear the player tasks.
-            if (!PlayerCharacter.GetConfigFlag(60))
-                wasInAir = true;
-            else PlayerCharacter.Velocity = Vector3.Zero;
+            GetComboMoveData(out var dict, out var anim, out var duration, out var punchTime, out var bone);
 
-            // The player is going to play the attack animation and freeze at the 
-            // attackEndPosition.
-            PlayerCharacter.Task.PlayAnimation(animationDict, animationName, 8.0f, -4.0f, 500,
-                AnimationFlags.AllowRotation | AnimationFlags.StayInEndFrame, attackStart);
+            PlayerCharacter.Task.PlayAnimation(dict, anim, 
+                8.0f, -4.0f, duration, AnimationFlags.AllowRotation, 0.0f);
 
-            // Reset the combo cooldown.
-            _comboCooldown = 0f;
-
-            // Cache the entities position.
-            var entityPosition = entity?.Position ?? referencePosition;
-
-            // The initial direction to the target.
-            // We'll use this so that the player doesn't unrealistically turn around and attack
-            // the entity.
-            var initialEntityDirection = entityPosition - PlayerCharacter.Position;
-            initialEntityDirection.Normalize(); // We need to normalize this vector for a correct calculation.
-
-            // If the timer exceeds the max time then we drop out of the loop.
-            while (loopTimer < maxLoopTime)
+            // Begin our loop.
+            GameWaiter.DoWhile(1000, () =>
             {
-                // Make the player think he's on the ground.
+                // Continue to disable the controls.
+                Controls.DisableControlsKeepRecording(2);
+                Game.EnableControlThisFrame(2, Control.LookLeftRight);
+                Game.EnableControlThisFrame(2, Control.LookUpDown);
+
+                // Cache some variables.
+                var direction = targetEntity.Position - PlayerCharacter.Position;
+
+                PlayerCharacter.SetAnimationSpeed(dict, anim, 1.25f);
+
+                // Set the player heading towards the entity.
+                PlayerCharacter.Heading = direction.ToHeading();
+                PlayerCharacter.Velocity = direction / 0.25f/* + targetEntity.Velocity*/;
                 PlayerCharacter.SetConfigFlag(60, true);
+                PlayerCharacter.SetConfigFlag(104, true);
+                Game.SetControlNormal(2, Control.MoveLeftRight, 0f);
+                Game.SetControlNormal(2, Control.MoveUpDown, 0f);
+                Game.SetControlNormal(2, Control.Sprint, 0f);
 
-                // Up the loop timer.
-                loopTimer += Time.DeltaTime;
+                //ms++;
+                //UI.ShowSubtitle(ms + "\n" + 
+                //    PlayerCharacter.GetAnimationTime("melee@unarmed@streamed_core", "heavy_finishing_punch"));
 
-                // Get the direction we need.
-                entityPosition = entity?.Position ?? referencePosition;
-
-                // Make sure that while we're in this loop, 
-                // that we disable the controls as needed.
-                DisableControls();
-
-                // Get the current direction.
-                var currentDirection = entityPosition - PlayerCharacter.Position;
-                currentDirection.Normalize();
-
-                if (entity == null)
-                    currentDirection = initialEntityDirection;
-
-                // Set the character's heading.
-                PlayerCharacter.Heading = currentDirection.ToHeading();
-
-                // Check if we're playing the combo move.
-                if (PlayerCharacter.IsPlayingAnimation(animationDict, animationName))
-                    if (PlayerCharacter.GetAnimationTime(animationDict, animationName) >= attackStart)
+                var boneCoord = PlayerCharacter.GetBoneCoord(bone);
+                if (PlayerCharacter.GetAnimationTime(dict, anim) > punchTime)
+                {
+                    var ray = World.RaycastCapsule(boneCoord, boneCoord, 1f,
+                        (IntersectOptions) (int) (ShapeTestFlags.IntersectObjects |
+                                                  ShapeTestFlags.IntersectPeds |
+                                                  ShapeTestFlags.IntersectVehicles), PlayerCharacter);
+                    if (ray.DitHitEntity)
                     {
-                        // Get the hand coord.
-                        var handPos = PlayerCharacter.GetBoneCoord(bone);
-
-                        // Start the shape test and get the result.
-                        var shapeTest = WorldProbe.StartShapeTestCapsule(handPos, handPos, 1f,
-                            ShapeTestFlags.IntersectPeds |
-                            ShapeTestFlags.IntersectVehicles |
-                            ShapeTestFlags.IntersectObjects,
-                            PlayerCharacter);
-                        var result = shapeTest.GetResult();
-
-                        var inRange = entity != null &&
-                                      (PlayerCharacter.IsTouching(entity) ||
-                                       Vector3.Distance(PlayerCharacter.Position, entity.Position) < 2f);
-
-                        // Check the result.
-                        if (result.Hit || inRange)
-                        {
-                            var entityType = result.EntityType;
-                            Vector3 offset;
-                            Entity entityHit = result.EntityHit;
-                            if (inRange)
-                            {
-                                entityType = entity.GetEntityType();
-                                entityHit = entity;
-                                offset = entity.Position - PlayerCharacter.Position;
-                            }
-                            else
-                            {
-                                offset = entityHit?.Position - result.EndCoords ?? Vector3.Zero;
-                            }
-                            switch (entityType)
-                            {
-                                case EntityType.Object:
-                                    entityHit.Velocity = currentDirection * 15f;
-                                    Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
-                                    break;
-                                case EntityType.Ped:
-                                    var ped = (Ped) entityHit;
-                                    const int damage = 5000 / 70;
-                                    ped.ApplyDamage(damage);
-                                    if (!ped.IsDead)
-                                        ped.Task.ClearAllImmediately();
-                                    ped.SetToRagdoll(0);
-                                    var timer = 0.2f;
-                                    while (!ped.IsRagdoll && timer > 0)
-                                    {
-                                        timer -= Time.UnscaledDeltaTime;
-                                        Script.Yield();
-                                    }
-                                    ped.Velocity = currentDirection * 15f;
-                                    Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
-                                    break;
-                                case EntityType.Vehicle:
-                                    var vehicle = (Vehicle) entityHit;
-                                    vehicle.ApplyForce(ForceFlags.StrongForce, currentDirection * 17808.69f,
-                                        offset, 0, false, false, false);
-                                    var vehOffset = vehicle.GetOffsetFromWorldCoords(result.EndCoords);
-                                    vehicle.SetDamage(vehOffset, 2500, 5000);
-                                    Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity,
-                                        "KNUCKLE_DUSTER_COMBAT_PED_HIT_BODY"));
-                                    break;
-                            }
-                            DamagedEntity?.Invoke(this, new EventArgs(), entity,
-                                entity?.Position + offset ?? Vector3.Zero);
-                            PlayerCharacter.Velocity /= 4;
-                            break;
-                        }
+                        var entity = ray.HitEntity;
+                        var type = entity.GetEntityType();
+                        ApplyDamage(direction, entity, type, boneCoord);
+                    }
+                    else if (PlayerCharacter.IsTouching(targetEntity))
+                    {
+                        ApplyDamage(direction, targetEntity, targetEntity.GetEntityType(), boneCoord);
                     }
 
-                // Set the player's velocity.
-                PlayerCharacter.Velocity = currentDirection * acceleration + (entity?.Velocity ?? Vector3.Zero);
+                    return false;
+                }
 
-                // Yield so that we're not doing a constant loop in 1 frame.
-                Script.Yield();
-            }
+                return true;
 
-            // If we didn't get to finish the attack, then we're going to clear
-            // the player tasks so he's not stuck in an animation.
-            //PlayerCharacter.Task.ClearAll();
-
-            if (wasInAir)
-                GameWaiter.Wait(250);
+            }, null);
+            PlayerCharacter.SetConfigFlag(60, false);
+            PlayerCharacter.IsMeleeProof = false;
+            PlayerCharacter.IsCollisionProof = false;
+            Function.Call(Hash.SET_ENTITY_RECORDS_COLLISIONS, PlayerCharacter.Handle, true);
+            GameWaiter.Wait(150);
         }
 
-        /// <summary>
-        ///     Get's an animation for a specific combo move index (0 - 2 inclusive) and
-        ///     returns the point in the animation where the player lands the hit.
-        /// </summary>
-        /// <param name="combonationIndex">The combonation index.</param>
-        /// <param name="animationName">The returned animation name.</param>
-        /// <param name="animationDict">The returned animation dictionary.</param>
-        /// <returns>Returns the point in the animation where the player lands the hit.</returns>
-        private float GetAnimationForComboMove(int combonationIndex, ref string animationName,
-            ref string animationDict, ref Bone bone)
+        private void GetComboMoveData(out string animDict, out string animName, out int animDuration, out float punchTime, out Bone bone)
         {
-            // The end position of the attack animation. (when the player lands the hit)
-            var attackStart = 0.15f;
+            // melee@unarmed@streamed_core
+            // counter_attack_r - 0.15 & 600ms
+            // plyr_takedown_rear_lefthook - 0.3 & 389
+            // heavy_punch_b - 0.27 & 551
+            // heavy_finishing_punch - 0.3 & 521
+            animDict = "melee@unarmed@streamed_core";
+            animName = string.Empty;
+            animDuration = 0;
+            punchTime = 0f;
+            bone = 0x0;
 
-            // Now set our combo moves animation based on 
-            // our combo number.
-            switch (combonationIndex)
+            switch (_comboIndex)
             {
                 case 0:
-                    if (!PlayerCharacter.GetConfigFlag(60))
-                    {
-                        animationDict = "swimming@swim";
-                        animationName = "melee_underwater_moving_unarmed";
-                        attackStart = 0.23f;
-                    }
-                    else
-                    {
-                        animationDict = "melee@unarmed@streamed_core";
-                        animationName = "heavy_finishing_punch";
-                        attackStart = 0.25f;
-                    }
+                    animName = "counter_attack_r";
+                    animDuration = 1000;
+                    punchTime = 0.15f;
                     bone = Bone.SKEL_R_Hand;
                     break;
                 case 1:
-                    if (!PlayerCharacter.GetConfigFlag(60))
-                    {
-                        animationDict = "swimming@swim";
-                        animationName = "melee_surface_still";
-                        attackStart = 0.1f;
-                    }
-                    else
-                    {
-                        animationDict = "melee@unarmed@streamed_core";
-                        animationName = "plyr_takedown_front_elbow";
-                    }
-                    bone = Bone.MH_R_Elbow;
+                    animName = "plyr_takedown_rear_lefthook";
+                    animDuration = 718;
+                    punchTime = 0.3f;
+                    bone = Bone.SKEL_L_Hand;
                     break;
                 case 2:
-                    if (!PlayerCharacter.GetConfigFlag(60))
-                    {
-                        animationDict = "swimming@swim";
-                        animationName = "melee_surface_still";
-                        attackStart = 0.1f;
-                    }
-                    else
-                    {
-                        animationDict = "melee@unarmed@streamed_core";
-                        animationName = "plyr_takedown_front_elbow";
-                        attackStart = 0.2f;
-                    }
+                    animName = "heavy_punch_b";
+                    animDuration = 1000;
+                    punchTime = 0.27f;
+                    bone = Bone.SKEL_R_Hand;
+                    break;
+                case 3:
+                    animName = "heavy_finishing_punch";
+                    animDuration = 1000;
+                    punchTime = 0.3f;
                     bone = Bone.SKEL_L_Hand;
                     break;
             }
 
-            // Return the attack end position.
-            return attackStart;
+            _comboIndex = (_comboIndex + 1) % 4;
         }
 
-        /// <summary>
-        ///     Returns the direction that the player should attack based on input.
-        /// </summary>
-        /// <returns></returns>
-        private Vector3 GetAttackDirection()
+        private Entity GetClosestTarget(float radius)
         {
-            Vector3 attackDirection;
+            var closestVehicle = World.GetClosestVehicle(PlayerCharacter.Position, radius);
+            var closePeds = World.GetNearbyPeds(PlayerCharacter, radius);
+            var closestPed = Utilities.GetClosestEntity(PlayerCharacter, closePeds.Select(x => (Entity)x).Where(x => !x.IsDead).ToList());
 
-            // Store some constant variables where we'll estimate some
-            // things about the player's attacks.
-            const float minInputLength = 0.1f;
+            if (closestPed == null || closestVehicle == null) return closestPed ?? closestVehicle;
+            var dist1 = closestPed.Position.DistanceToSquared(PlayerCharacter.Position);
+            var dist2 = closestVehicle.Position.DistanceToSquared(PlayerCharacter.Position);
+            return dist1 <= dist2 ? closestPed : closestVehicle;
+        }
 
-            // We'll get the local direction of input. This will be the main
-            // direction of our attack.
-            var cameraRotation = Quaternion.Euler(GameplayCamera.Rotation);
-            var xInput = Game.GetControlNormal(2, Control.MoveLeftRight);
-            var yInput = Game.GetControlNormal(2, Control.MoveUpDown);
-            var inputDirection = new Vector3(xInput, -yInput, 0f);
-            var localInput =
-                Vector3.ProjectOnPlane(cameraRotation * inputDirection, Vector3.WorldUp); // Make sure this is flat.
-
-            // We'll use this direction if there's no input direction.
-            var noInputDirection = Vector3.ProjectOnPlane(PlayerCharacter.ForwardVector, Vector3.WorldUp);
-
-            // If the input direction is actually 
-            // not empty then we're going to use that as the
-            // attack direction.
-            if (localInput.Length() > minInputLength)
-                attackDirection = localInput;
-            // If not, then we'll use the player
-            // direction.
-            else
-                attackDirection = noInputDirection;
-
-            // Return the normalized vector.
-            return attackDirection.Normalized;
+        private void ApplyDamage(Vector3 direction, Entity entity, EntityType type, Vector3 hitCoords)
+        {
+            if (type == EntityType.Vehicle)
+            {
+                var veh = new Vehicle(entity.Handle);
+                var offset = veh.GetOffsetFromWorldCoords(hitCoords);
+                veh.SetDamage(offset, 5000f, 7000f);
+                veh.Health -= 45;
+                veh.ApplyForce(ForceFlags.StrongForce, PlayerCharacter.ForwardVector * 30000f, direction, 0, false, false, false);
+                GTAGraphics.StartParticle("core", "bul_carmetal", hitCoords, Vector3.Zero, 1.0f);
+                Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "KNUCKLE_DUSTER_COMBAT_PED_HIT_BODY"));
+            }
+            else if (type == EntityType.Ped)
+            {
+                var ped = new Ped(entity.Handle);
+                if (ped.CanRagdoll)
+                    ped.SetToRagdoll(0);
+                ped.Velocity = direction * 35;
+                ped.ApplyDamage(50);
+                Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
+            }
         }
 
         /// <summary>
@@ -643,10 +422,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// </summary>
         public override void Stop()
         {
-            // Clear this animation from the player if it's still playing.
-            PlayerCharacter.Task.ClearAnimation("random@arrests", "kneeling_arrest_get_up");
-
-            // Delete this vehicle if it exists.
             _currentPickupVehicle?.Delete();
         }
     }
