@@ -1,11 +1,9 @@
-﻿using GTA;
-using GTA.Native;
-using ScriptCommunicatorHelper;
-using spiderman.net.Abilities;
-using spiderman.net.Library;
-using spiderman.net.Library.Extensions;
-using spiderman.net.Library.Memory;
+﻿using System;
 using System.Collections.Generic;
+using GTA;
+using GTA.Native;
+using SpiderMan.Abilities.SpecialAbilities;
+using SpiderMan.Library.Memory;
 
 /// <summary>
 /// Credits: 
@@ -13,39 +11,38 @@ using System.Collections.Generic;
 /// - crosire: https://www.gta5-mods.com/users/crosire
 /// - alexander blade: http://www.dev-c.com/
 /// </summary>
-namespace spiderman.net
+namespace SpiderMan
 {
     /// <summary>
-    /// The main script that controls all our abilities.
+    ///     The main script that controls all our abilities.
     /// </summary>
     public class CoreScript : Script
     {
         /// <summary>
-        /// The script communicator. (used by the script communicator menu)
-        /// </summary>
-        private ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
-
-        /// <summary>
-        /// This holds a list of our special abilities.
+        ///     This holds a list of our special abilities.
         /// </summary>
         private List<SpecialAbility> _abilities = new List<SpecialAbility>();
 
         /// <summary>
-        /// Used for initialization the first time our tick method is called.
+        ///     Used for initialization the first time our tick method is called.
         /// </summary>
         private bool _initialized;
 
         /// <summary>
-        /// Called the first tick.
+        ///     Called the first tick.
         /// </summary>
         private bool _initMemory;
 
         /// <summary>
-        /// The main constructor.
+        ///     The script communicator. (used by the script communicator menu)
+        /// </summary>
+        private readonly ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
+
+        /// <summary>
+        ///     The main constructor.
         /// </summary>
         public CoreScript()
         {
-
             Tick += OnTick;
             Aborted += OnAborted;
             Interval = 0;
@@ -54,22 +51,22 @@ namespace spiderman.net
         }
 
         /// <summary>
-        /// The local player's character component.
+        ///     The local player's character component.
         /// </summary>
         public static Ped PlayerCharacter { get; private set; }
 
         /// <summary>
-        /// Called when the mod is reloaded / crashed.
+        ///     Called when the mod is reloaded / crashed.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void OnAborted(object sender, System.EventArgs e)
+        private void OnAborted(object sender, EventArgs e)
         {
             StopAllAbilities();
         }
 
         /// <summary>
-        /// Calls the stop method on all the player's abilities.
+        ///     Calls the stop method on all the player's abilities.
         /// </summary>
         private void StopAllAbilities()
         {
@@ -79,11 +76,11 @@ namespace spiderman.net
         }
 
         /// <summary>
-        /// Our update method.
+        ///     Our update method.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void OnTick(object sender, System.EventArgs e)
+        private void OnTick(object sender, EventArgs e)
         {
             // Update our player's character in case he changes models.
             if (!Entity.Exists(PlayerCharacter))
@@ -116,7 +113,7 @@ namespace spiderman.net
         }
 
         /// <summary>
-        /// Here's where we initialize our abilities.
+        ///     Here's where we initialize our abilities.
         /// </summary>
         private void Init()
         {
@@ -134,7 +131,7 @@ namespace spiderman.net
                     new Agility(),
                     new Melee(),
                     new StarkTech(),
-                    new WallCrawl(),
+                    new WallCrawl()
                 };
                 _initialized = true;
             }

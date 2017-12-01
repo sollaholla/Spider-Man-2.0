@@ -1,9 +1,9 @@
 ﻿using GTA;
 using GTA.Math;
-using spiderman.net.Library.Extensions;
-using Rope = spiderman.net.Library.Rope;
+using SpiderMan.Library.Extensions;
+using Rope = SpiderMan.Library.Types.Rope;
 
-namespace spiderman.net.Abilities.Types
+namespace SpiderMan.Abilities.Types
 {
     public class AttachmentInfo
     {
@@ -25,11 +25,11 @@ namespace spiderman.net.Abilities.Types
                 return;
 
             const float MaxDistance = 7000f;
-            float distance1 = Vector3.DistanceSquared(referenceCoords, Entity1.Position);
-            float distance2 = Vector3.DistanceSquared(referenceCoords, Entity2.Position);
+            var distance1 = Vector3.DistanceSquared(referenceCoords, Entity1.Position);
+            var distance2 = Vector3.DistanceSquared(referenceCoords, Entity2.Position);
 
-            if ((distance1 >= MaxDistance || distance2 >= MaxDistance) ||
-                (!Entity.Exists(Entity1) || !Entity.Exists(Entity2)))
+            if (distance1 >= MaxDistance || distance2 >= MaxDistance || !Entity.Exists(Entity1) ||
+                !Entity.Exists(Entity2))
             {
                 Delete();
                 Terminated = true;

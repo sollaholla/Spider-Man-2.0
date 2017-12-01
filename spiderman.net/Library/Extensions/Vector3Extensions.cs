@@ -1,21 +1,17 @@
-﻿using GTA.Math;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
+using GTA.Math;
 
-namespace spiderman.net.Library.Extensions
+namespace SpiderMan.Library.Extensions
 {
     public static class Vector3Extensions
     {
         public static Vector3 TransformVector(this Vector3 i, Func<float, float> method)
         {
-            return new Vector3()
+            return new Vector3
             {
                 X = method(i.X),
                 Y = method(i.Y),
-                Z = method(i.Z),
+                Z = method(i.Z)
             };
         }
 

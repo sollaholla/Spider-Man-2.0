@@ -1,32 +1,31 @@
-﻿using GTA;
-using spiderman.net.Library;
-using System.Collections.Generic;
-using Rope = spiderman.net.Library.Rope;
+﻿using System.Collections.Generic;
+using GTA;
 using GTA.Math;
-using spiderman.net.Library.Extensions;
-using spiderman.net.Scripts;
-using spiderman.net.Abilities.Types;
-using spiderman.net.Abilities.Attributes;
+using SpiderMan.Abilities.Attributes;
+using SpiderMan.Abilities.SpecialAbilities;
+using SpiderMan.Abilities.Types;
+using SpiderMan.Library.Extensions;
+using Rope = SpiderMan.Library.Types.Rope;
 
-namespace spiderman.net.Abilities.WebTech
+namespace SpiderMan.Abilities.WebTech
 {
     [WebTech("Web Mode")]
     public class TazerWebs : Tech
     {
-        public override string Name => "Tazer Webs";
-
-        public override string Description => "Electrically charged web fluid.";
-
         public TazerWebs()
         {
-            Abilities = new List<SpecialAbility>()
+            Abilities = new List<SpecialAbility>
             {
                 new WebZip(),
                 new WebSwing()
             };
             Streaming.RequestAnimationDictionary("ragdoll@human");
         }
-        
+
+        public override string Name => "Tazer Webs";
+
+        public override string Description => "Electrically charged web fluid.";
+
         public override void Activate()
         {
             AudioPlayer.PlaySound(AudioPlayer.MainPath + "Tazer Webs.wav", 1.0f);
@@ -43,7 +42,8 @@ namespace spiderman.net.Abilities.WebTech
             if (Game.IsDisabledControlJustPressed(2, Control.ParachuteSmoke))
             {
                 var camRay = WorldProbe.StartShapeTestRay(GameplayCamera.Position, GameplayCamera.Position +
-                    GameplayCamera.Direction * 100f, ShapeTestFlags.IntersectPeds | ShapeTestFlags.IntersectVehicles,
+                                                                                   GameplayCamera.Direction * 100f,
+                    ShapeTestFlags.IntersectPeds | ShapeTestFlags.IntersectVehicles,
                     PlayerCharacter).GetResult();
 
                 if (camRay.Hit)
@@ -58,7 +58,7 @@ namespace spiderman.net.Abilities.WebTech
 
                     // Play the web shoot animation.
                     PlayerCharacter.Task.PlayAnimation("guard_reactions", "1hand_aiming_to_idle", 8.0f, -8.0f, -1,
-                        (AnimationFlags)40, 0.0f);
+                        (AnimationFlags) 40, 0.0f);
 
                     var playerBone = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
                     var rope = Rope.AddRope(playerBone, distance, GTARopeType.ThickRope, 0.2f, 0.1f, true, false);
@@ -81,7 +81,8 @@ namespace spiderman.net.Abilities.WebTech
                                 var ped = new Ped(camRay.EntityHit.Handle);
                                 Utilities.ShockPed(ped, 15);
                             }
-                            Utilities.CreateParticleChain(playerBone, camRay.EntityHit.Position, Vector3.Zero, nodeSize: 0.5f, noiseMultiplier: 0.0f);
+                            Utilities.CreateParticleChain(playerBone, camRay.EntityHit.Position, Vector3.Zero,
+                                nodeSize: 0.5f, noiseMultiplier: 0.0f);
                         }
                         counter++;
                         Script.Yield();

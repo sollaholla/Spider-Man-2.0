@@ -1,0 +1,688 @@
+using System;
+using System.Collections.Generic;
+using GTA;
+using GTA.Math;
+using SpiderMan.Library.Extensions;
+using Rope = SpiderMan.Library.Types.Rope;
+
+namespace SpiderMan.Abilities.SpecialAbilities
+{
+    /// <summary>
+    ///     Allows the player to grapple onto vehicles,
+    ///     or slingshot himself with a web.
+    /// </summary>
+    public class WebZip : SpecialAbility
+    {
+        public delegate void OnCatchLanding(object sender, EventArgs e, float fallHeight);
+
+        // A flag to help us know
+        // when the player was falling.
+        private static bool _falling;
+
+        // Let's us know how high we where 
+        // before we started falling.
+        private static float _fallHeight;
+
+        // This is to help with rotations
+        // while we calculate the arc needed
+        // to travel in order to land on a vehicle.
+        private Entity _helperObj;
+
+        // Used for lerping direction of player
+        // while falling.
+        private Vector3 inputVector;
+
+        /// <summary>
+        ///     Called in the first tick of the main
+        ///     script.
+        /// </summary>
+        public WebZip()
+        {
+            // Make sure to request rope textures,
+            // if they haven't already loaded.
+            Rope.LoadTextures();
+
+            // Request our animations.
+            Streaming.RequestAnimationDictionary("weapons@projectile@");
+            Streaming.RequestAnimationDictionary("move_fall");
+            Streaming.RequestAnimationDictionary("swimming@swim");
+            Streaming.RequestAnimationDictionary("amb@world_vehicle_police_carbase");
+            Streaming.RequestAnimationDictionary("skydive@base");
+            Streaming.RequestAnimationDictionary("move_crouch_proto");
+
+            new Model("bmx").Request();
+        }
+
+        public static event OnCatchLanding CaughtLanding;
+
+        /// <summary>
+        ///     Overrieds our internal fall height to the specified value.
+        /// </summary>
+        /// <param name="height"></param>
+        public static void OverrideFallHeight(float height)
+        {
+            _fallHeight = height;
+            _falling = true;
+        }
+
+        /// <summary>
+        ///     Our update method.
+        /// </summary>
+        public override void Update()
+        {
+            // Disable the player's pain audio.
+            PlayerCharacter.DisablePainAudio(true);
+
+            // Checks the player's fall height.
+            CheckFallAndCatchLanding();
+
+            // Draw the reticle for aiming purposes.
+            UI.ShowHudComponentThisFrame(HudComponent.Reticle);
+
+            // The max distance of our raycast.
+            const float rayMaxDist = 250f;
+
+            // Get the hit point of the raycast.
+            var entity = Utilities.GetAimedEntity(rayMaxDist, out var hitPoint, out var entityType);
+
+            // Now do the corresponding logical operation.
+            if (entityType == EntityType.None) WorldGrapple(hitPoint);
+            else if (entityType == EntityType.Vehicle) VehicleGrapple((Vehicle) entity);
+            else if (entityType == EntityType.Ped) PedGrapple((Ped) entity);
+        }
+
+        /// <summary>
+        ///     Catch our landing so we don't die from high falls.
+        /// </summary>
+        private bool CheckFallAndCatchLanding(Rope r = null)
+        {
+            // If the player is falling then...
+            if (PlayerCharacter.IsFalling)
+            {
+                // Check the falling flag.
+                if (!_falling)
+                    _fallHeight = PlayerCharacter.HeightAboveGround;
+
+                // Set the flag regardless. We're just 
+                // using it as a trigger of sorts.
+                _falling = true;
+            }
+            else
+            {
+                // Like before, set it regardless.
+                _falling = false;
+
+                // Set the input vector before we start falling.
+                inputVector = PlayerCharacter.ForwardVector;
+            }
+
+            // Catch our landing at high falls.
+            if (PlayerCharacter.GetConfigFlag(60) || PlayerCharacter.HeightAboveGround < 1.5f)
+            {
+                // Check the fall height, catch the landing,
+                // and reset the fall height.
+                const float maxFallHeight = 5f;
+                if (_fallHeight > maxFallHeight)
+                {
+                    // Try to catch our landing.
+                    r?.Delete();
+                    CatchLanding();
+                    CaughtLanding?.Invoke(this, new EventArgs(), _fallHeight);
+                    _fallHeight = 0f;
+                }
+                else
+                {
+                    // If we should splat then let us, so that
+                    // the falling anim isn't constantly playing.
+                    PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
+                }
+
+                // This will return true since we landed.
+                return true;
+            }
+
+            // Nothing happened so we return false.
+            return false;
+        }
+
+        /// <summary>
+        ///     Grapples the player towards a point on the map.
+        /// </summary>
+        private void WorldGrapple(Vector3 targetPoint)
+        {
+            // Make sure that this point is not 
+            // empty just for safety.
+            if (targetPoint == Vector3.Zero)
+                return;
+
+            // Disable the reload control for now.
+            Game.DisableControlThisFrame(2, Control.Reload);
+
+            // Now once we press the reload key, we want 
+            // to grapple the player (also make sure
+            // he's not on the ground already).
+            if (Game.IsDisabledControlJustPressed(2, Control.Reload))
+            {
+                // Get the direction from the player to the point.
+                var directionToPoint = targetPoint - PlayerCharacter.Position;
+
+                // If we're on the ground then move us upwards.
+                if (PlayerCharacter.GetConfigFlag(60))
+                    directionToPoint += Vector3.WorldUp * 0.5f;
+                directionToPoint.Normalize(); // Normalize the direcion vector.
+
+                // Set the player's heading accordingly.
+                PlayerCharacter.Heading = directionToPoint.ToHeading();
+
+                var speed = Vector3.Distance(PlayerCharacter.Position, targetPoint);
+                speed = Maths.Clamp(speed, 65f, 150f);
+
+                // Play the falling animation.
+                // Reset the player's velocity if anything is left over.
+                PlayerCharacter.Task.ClearAllImmediately();
+                PlayerCharacter.Velocity = Vector3.Zero;
+                PlayerCharacter.Task.Jump();
+
+                // Now we need to set player's velocity.
+                PlayerCharacter.Velocity = directionToPoint * speed;
+
+                // Initialize our rope variable.
+                Rope rope = null;
+
+                // Wait until the player is no longer on the ground.
+                GameWaiter.DoWhile(100, () => PlayerCharacter.GetConfigFlag(60),
+                    () => { PlayerCharacter.Velocity += Vector3.WorldUp * 500f * Time.UnscaledDeltaTime; });
+
+                // Make sure we've left the ground.
+                if (!PlayerCharacter.GetConfigFlag(60))
+                {
+                    // Play the web grapple animation.
+                    PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
+                        8.0f, -4.0f, 250, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
+
+                    // Reverse the anim.
+                    GameWaiter.WaitUntil(500,
+                        () => PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"));
+                    PlayerCharacter.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
+                }
+
+                GameWaiter.DoWhile(700, () =>
+                {
+                    if (PlayerCharacter.HasCollidedWithAnything)
+                        return false;
+
+                    if (CheckFallAndCatchLanding(rope))
+                        return false;
+
+                    // Cache the players right hand coord.
+                    var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
+
+                    // Create the rope.
+                    if (rope == null)
+                    {
+                        // Get the inital distance to the target.
+                        var initialDist = rHand.DistanceTo(targetPoint);
+                        rope = Rope.AddRope(rHand, initialDist, GTARopeType.ThickRope, initialDist / 2, 0.1f, true,
+                            false);
+                    }
+
+                    // Check if the player is playing the grapple animation.
+                    if (PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
+                    {
+                        // Pin the rope vertices.
+                        rope.PinVertex(0, rHand);
+                        rope.PinVertex(rope.VertexCount - 1, targetPoint);
+
+                        // Reverse the grapple animation.
+                        PlayerCharacter.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
+                    }
+                    else
+                    {
+                        // Otherwise delete the rope.
+                        rope.UnpinVertex(0);
+                        rope.PinVertex(rope.VertexCount - 1, targetPoint);
+                    }
+                    return true;
+                }, null);
+
+                // Clear the throwing anim.
+                PlayerCharacter.Task.ClearAnimation("weapons@projectile@", "throw_m_fb_stand");
+
+                // Destroy the rope here.
+                if (Rope.Exists(rope))
+                    rope.Delete();
+            }
+        }
+
+        /// <summary>
+        ///     If you call this as soon as the player
+        ///     hit's the ground, it will recover him with a roll (or
+        ///     if not moving just a plain landing animation).
+        /// </summary>
+        private void CatchLanding()
+        {
+            // Clear the player's tasks.
+            PlayerCharacter.ClearTasksImmediately();
+
+            // Check our movement vector.
+            var moveSideways = Game.GetControlNormal(2, Control.MoveLeftRight);
+            var moveVertical = Game.GetControlNormal(2, Control.MoveUpDown);
+            var moveVector = new Vector3(moveSideways, 0, moveVertical);
+
+            // Play the movement dependant animations.
+            if (moveVector.Length() > 0)
+            {
+                // Add a little bit of dust.
+                GTAGraphics.StartParticle("core", "ent_dst_dust", PlayerCharacter.Position - Vector3.WorldUp,
+                    Vector3.Zero, 2f);
+
+                // Play the rolling animation.
+                PlayerCharacter.Task.PlayAnimation("move_fall", "land_roll",
+                    8.0f, -4.0f, 750, AnimationFlags.AllowRotation, 0.0f);
+            }
+            else
+            {
+                // Add a little bit of dust.
+                GTAGraphics.StartParticle("core", "ent_dst_dust", PlayerCharacter.Position - Vector3.WorldUp,
+                    Vector3.Zero, 2f);
+
+                // Play our super hero landing animation.
+                PlayerCharacter.Velocity = Vector3.Zero;
+                PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro", 6.0f, -4.0f, 450,
+                    AnimationFlags.Loop, 0.0f);
+                PlayerCharacter.Task.PlayAnimation("skydive@base", "ragdoll_to_free_idle", 6.0f, -4.0f, 450,
+                    AnimationFlags.AllowRotation |
+                    AnimationFlags.UpperBodyOnly,
+                    0.0f);
+                GameWaiter.WaitUntil(500,
+                    () => PlayerCharacter.IsPlayingAnimation("skydive@base", "ragdoll_to_free_idle"));
+                PlayerCharacter.SetAnimationSpeed("skydive@base", "ragdoll_to_free_idle", 0f);
+            }
+
+            // Clear the falling animation.
+            PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
+            GameWaiter.Wait(500);
+        }
+
+        /// <summary>
+        ///     This will grapple a ped towards the player, and make them ragdoll.
+        ///     If the ped is armed, it will automatically disarm them, but they won't ragdoll.
+        /// </summary>
+        /// <param name="ped"></param>
+        private void PedGrapple(Ped ped)
+        {
+            // TODO: Grapple a ped towards us.
+            // Make sure that the ped didn't return null for some reason.
+            if (ped == null)
+                return;
+        }
+
+        /// <summary>
+        ///     Grapple onto the rooftops of moving / stationary land vehicles.
+        /// </summary>
+        private void VehicleGrapple(Vehicle vehicle)
+        {
+            if (vehicle == null)
+                return;
+
+            // Make sure we got a vehicle returned to us.
+            if (vehicle != null && vehicle.ClassType != VehicleClass.Helicopters
+                && vehicle.ClassType != VehicleClass.Planes)
+            {
+                // Disable the vehicle enter button.
+                Game.DisableControlThisFrame(2, Control.Reload);
+
+                // Check if the player has pressed the right button.
+                if (Game.IsDisabledControlJustPressed(2, Control.Reload))
+                {
+                    /////////////////////////////////////////////////////////////
+                    // Now we're going to launch the player towards the vehicle!
+                    /////////////////////////////////////////////////////////////
+
+                    // Clear the player's tasks completely, first.
+                    PlayerCharacter.Task.ClearSecondary();
+                    PlayerCharacter.ClearTasksImmediately();
+
+                    // A flag that let's the loop know if we've done a long distance jump.
+                    var twoHandedAnim = false;
+
+                    // Now we need to player our cool animations.
+                    if (Vector2.Distance(new Vector2(PlayerCharacter.Position.X, PlayerCharacter.Position.Y),
+                            new Vector2(vehicle.Position.X, vehicle.Position.Y)) > 15f)
+                    {
+                        // Add a little RNG for the animations.
+                        // For one we'll do the forward dive recover, and 
+                        // the other will be the backwards paddle.
+                        var random = new Random();
+                        var animType = random.Next(2);
+
+                        // The first anim (back paddle).
+                        if (animType == 1)
+                        {
+                            PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
+                                4.0f, -2.0f, 1150, AnimationFlags.StayInEndFrame, 0.0f);
+
+                            // Our two handed grapple anim.
+                            PlayerCharacter.Task.PlayAnimation("amb@world_vehicle_police_carbase", "base",
+                                8.0f, -8.0f, 150, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
+                            twoHandedAnim = true;
+                        }
+                        // Now the second anim.
+                        else
+                        {
+                            PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front",
+                                4.0f, -2.0f, 1150, AnimationFlags.StayInEndFrame, 0.1f);
+
+                            PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
+                                8.0f, -4.0f, 100, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
+                        }
+                    }
+                    // If it's not a long distance jump...
+                    else
+                    {
+                        // Play the short distance jump animation combo.
+                        PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
+                            4.0f, -2.0f, 1150, AnimationFlags.StayInEndFrame, 0.0f);
+                        PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
+                            8.0f, -4.0f, 250, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
+                    }
+
+                    // Get the target direction.
+                    var targetDirection = vehicle.Position - PlayerCharacter.Position;
+                    targetDirection.Normalize();
+
+                    // Setup our loop timer.
+                    var elapsedTime = 0f;
+
+                    // Create the helper obj.
+                    _helperObj = World.CreateVehicle("bmx", PlayerCharacter.Position +
+                                                            new Vector3(0, 100, 0));
+                    _helperObj.HasCollision = false;
+                    _helperObj.IsVisible = false;
+                    _helperObj.FreezePosition = true;
+                    _helperObj.Heading = targetDirection.ToHeading();
+
+                    // The initial direction to the target used as an offset
+                    // for our heading.
+                    var initialTargetDirection = vehicle.Position - PlayerCharacter.Position;
+                    initialTargetDirection.Normalize();
+
+                    // The collection of rops we will use as webs.
+                    List<Rope> ropes = new List<Rope>();
+
+                    // The delay that we use to delete the ropes.
+                    var ropeDeleteDelay = 0.75f;
+
+                    // Let's do our loop.
+                    GameWaiter.DoWhile(() =>
+                    {
+                        return GrappleToVehicle(vehicle, twoHandedAnim,
+                            ref targetDirection,
+                            elapsedTime,
+                            initialTargetDirection,
+                            ropes,
+                            ref ropeDeleteDelay);
+                    }, null);
+
+                    // Despawn the ropes if for some reason they 
+                    // haven't.
+                    DespawnRopes(ropes);
+
+                    // Delete the helper object.
+                    _helperObj?.Delete();
+
+                    // Now we need to clear the player's tasks.
+                    PlayerCharacter.Task.ClearAll();
+                }
+            }
+        }
+
+        private bool GrappleToVehicle(
+            Vehicle vehicle, bool twoHandedAnim,
+            ref Vector3 targetDirection, float elapsedTime,
+            Vector3 initialTargetDirection, List<Rope> ropes,
+            ref float ropeDeleteDelay)
+        {
+            // Two handed web logic...
+            if (twoHandedAnim)
+            {
+                // Stop the upper body animation after some time, and move to
+                // a falling animation.
+                if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_back_to_idle"))
+                    if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.15f)
+                        PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
+                            2.0f, -4.0f, -1, AnimationFlags.StayInEndFrame, 0.0f);
+
+                // Get the hand coordinates.
+                var lHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_L_Hand);
+                var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
+
+                // Check if this player is playing the web pull animation.
+                if (!PlayerCharacter.IsPlayingAnimation("amb@world_vehicle_police_carbase", "base"))
+                {
+                    // If the ropes are ready to be deleted...
+                    if (ropeDeleteDelay <= 0)
+                    {
+                        // We need to despawn the dual webs.
+                        DespawnRopes(ropes);
+                    }
+                    // Otherwise...
+                    else
+                    {
+                        // Make sure we decrease the rope delay.
+                        ropeDeleteDelay -= Time.DeltaTime;
+
+                        // Unpin the vertex coordinates from
+                        // our hands.
+                        if (ropes.Count > 0)
+                        {
+                            ropes[0].UnpinVertex(0);
+                            ropes[1].UnpinVertex(0);
+
+                            // Also pin the vertices to the target
+                            // until we're done here.
+                            ropes[0].PinVertex(ropes[0].VertexCount - 1, vehicle.Position);
+                            ropes[1].PinVertex(ropes[1].VertexCount - 1, vehicle.Position);
+                        }
+                    }
+                }
+                // Otherwise we need to spawn them, 
+                // and update them.
+                else
+                {
+                    // Spawn the ropes first.
+                    if (ropes.Count == 0)
+                    {
+                        // Create the left and right hand ropes for two hand web jump.
+                        var lHandDistance = Vector3.Distance(lHand, vehicle.Position);
+                        var rHandDistance = Vector3.Distance(rHand, vehicle.Position);
+                        var rope1 = Rope.AddRope(lHand, lHandDistance, GTARopeType.ThickRope,
+                            lHandDistance / 2, 0.1f, true, false);
+                        var rope2 = Rope.AddRope(rHand, rHandDistance, GTARopeType.ThickRope,
+                            rHandDistance / 2, 0.1f, true, false);
+
+                        // Add the ropes to the rope collection.
+                        ropes.Add(rope1);
+                        ropes.Add(rope2);
+                    }
+                    // Now we need to update the vertex coordinates.
+                    else
+                    {
+                        // Pin the vertices.
+                        ropes[0].PinVertex(0, lHand);
+                        ropes[0].PinVertex(ropes[0].VertexCount - 1, vehicle.Position);
+                        ropes[1].PinVertex(0, rHand);
+                        ropes[1].PinVertex(ropes[1].VertexCount - 1, vehicle.Position);
+                    }
+                }
+            }
+            // Otherwise we need to add just a single rope.
+            else
+            {
+                // Let's update the swimming anim for this if any.
+                if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_flip_back_to_front"))
+                    if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.2f)
+                        PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
+                            2.0f, -4.0f, -1, AnimationFlags.StayInEndFrame, 0.0f);
+
+                // Get the right hand coord.
+                var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
+
+                // Check if the player is playing the web pull anim on
+                // the upper body.
+                if (!PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
+                {
+                    if (ropeDeleteDelay <= 0)
+                    {
+                        // Despawn the ropes at this point.
+                        DespawnRopes(ropes);
+                    }
+                    else
+                    {
+                        // Count down the rope delete delay.
+                        ropeDeleteDelay -= Time.DeltaTime;
+
+                        // If we've spawned the ropes...
+                        if (ropes.Count > 0)
+                        {
+                            // Pin the vertices accordingly.
+                            ropes[0].UnpinVertex(0); // Unpin the one from our hand.
+                            ropes[0].PinVertex(ropes[0].VertexCount - 1, vehicle.Position);
+                        }
+                    }
+                }
+                // The animation's not playing so let's
+                // add the ropes in.
+                else
+                {
+                    // Make sure there are no ropes.
+                    if (ropes.Count <= 0)
+                    {
+                        // The distance to the target
+                        // will be used as the rope length.
+                        var dist = Vector3.Distance(rHand, vehicle.Position);
+                        var rope = Rope.AddRope(rHand, dist, GTARopeType.ThickRope, dist / 2, 0.1f, true, false);
+                        ropes.Add(rope);
+                    }
+                    // The rope is there.
+                    else
+                    {
+                        // Now let's pin the vertex coords.
+                        ropes[0].PinVertex(0, rHand);
+                        ropes[0].PinVertex(ropes[0].VertexCount - 1, vehicle.Position);
+                    }
+                }
+            }
+
+            // Get the target direction direction.
+            targetDirection = vehicle.Position - PlayerCharacter.Position;
+            targetDirection.Normalize();
+
+            // Get the distance while we're at it.
+            var targetDistance = Vector3.Distance(PlayerCharacter.Position, vehicle.Position);
+
+            // The angle of the arc.
+            const float angle = 37f;
+            // A degree to radians conversion.
+            const float degToRad = 0.0174533f;
+            // The amount of gravity for the jump.
+            const float gravity = 50;
+
+            // Set the player rotation.
+            var targetRotation = Quaternion.FromToRotation(_helperObj.Quaternion * Vector3.RelativeFront,
+                                     targetDirection) * _helperObj.Quaternion;
+            _helperObj.Quaternion = targetRotation;
+
+            // Calculate the speed needed to go from A to B.
+            var targetVelocityMag = targetDistance / ((float) Math.Sin(2f * angle * degToRad) / gravity);
+
+            // Extract the x and z of the velocity.
+            var Vx = (float) Math.Sqrt(targetVelocityMag) * (float) Math.Cos(angle * degToRad);
+            var Vy = (float) Math.Sqrt(targetVelocityMag) * (float) Math.Sin(angle * degToRad);
+
+            // Get the rotation to the target.
+            var rotation = _helperObj.Quaternion;
+
+            // Calculate the velocity.
+            var yVel = (Vx - gravity * elapsedTime * 5) * Time.UnscaledDeltaTime;
+            var zVel = Vy * Time.UnscaledDeltaTime;
+            var acceleration = rotation * new Vector3(0, yVel, zVel);
+            acceleration.Normalize();
+
+            // Set the players velocity and heading.
+            PlayerCharacter.Heading = (initialTargetDirection * 5).ToHeading();
+            PlayerCharacter.Velocity = acceleration * 25f + vehicle.Velocity;
+
+            // reverse the grapple animation.
+            if (PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
+                PlayerCharacter.SetAnimationSpeed("weapons@projectile@",
+                    "throw_m_fb_stand", -1.0f); // set it to -1x the speed.
+
+            // Check if the player has collided with anything,
+            // and if so, then break the loop.
+            if (PlayerCharacter.HasCollidedWithAnything)
+            {
+                // Stop the grapple.
+                StopGrapple();
+                // If the player is touching the vehicle...
+                if (PlayerCharacter.IsTouching(vehicle))
+                {
+                    // Get the collision normal and check to see
+                    // if we're on a flat surface.
+                    var collisionNormal = vehicle.GetLastCollisionNormal();
+                    if (Vector3.Dot(collisionNormal, Vector3.WorldUp) > 0.5f)
+                    {
+                        // Now we're going to artificially attach the player
+                        // to the roof, with a nice little animation.
+                        PlayerCharacter.Velocity = vehicle.Velocity;
+                        vehicle.SetDamage(PlayerCharacter.Position - vehicle.Position, 3000f, 200f);
+                        PlayerCharacter.Task.PlayAnimation("move_fall", "clamber_land_stand",
+                            8.0f, -4.0f, 750, AnimationFlags.None, 0.0f);
+                        GameplayCamera.Shake(CameraShake.Jolt, 0.1f);
+                        OverrideFallHeight(0f);
+                    }
+                }
+                return false;
+            }
+
+            // Make sure the player doesn't think he's falling while we update.
+            PlayerCharacter.SetConfigFlag(60, true);
+            return true;
+        }
+
+        /// <summary>
+        ///     Stops the player grapple.
+        /// </summary>
+        private void StopGrapple()
+        {
+            PlayerCharacter.Task.ClearAll();
+            PlayerCharacter.SetConfigFlag(60, false); // Not grounded.
+        }
+
+        /// <summary>
+        ///     Despawns the specified ropes.
+        /// </summary>
+        /// <param name="ropes">The ropes to despawn.</param>
+        private static void DespawnRopes(List<Rope> ropes)
+        {
+            foreach (var rope in ropes)
+                if (rope != null && rope.Exists())
+                    rope.Delete();
+        }
+
+        /// <summary>
+        ///     Here's where the script stops.
+        /// </summary>
+        public override void Stop()
+        {
+            // Delete the helper object.
+            _helperObj?.Delete();
+
+            // Re-enable player pain audio.
+            PlayerCharacter.DisablePainAudio(false);
+
+            // Clear our anim once we stop
+            PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
+        }
+    }
+}

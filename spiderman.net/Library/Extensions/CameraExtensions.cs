@@ -1,12 +1,12 @@
 ﻿using GTA;
 using GTA.Native;
 
-namespace spiderman.net.Library.Extensions
+namespace SpiderMan.Library.Extensions
 {
     public static class CameraExtensions
     {
         /// <summary>
-        /// Start's rendering script cameras.
+        ///     Start's rendering script cameras.
         /// </summary>
         /// <param name="camera"></param>
         /// <param name="easeTime"></param>

@@ -1,23 +1,26 @@
-﻿using GTA;
-using GTA.Math;
-using GTA.Native;
-using spiderman.net.Abilities.Attributes;
-using spiderman.net.Abilities.Types;
-using spiderman.net.Library;
-using spiderman.net.Library.Extensions;
-using spiderman.net.Scripts;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using GTA;
+using GTA.Math;
+using SpiderMan.Abilities.Attributes;
+using SpiderMan.Abilities.SpecialAbilities;
+using SpiderMan.Abilities.Types;
+using SpiderMan.Library.Extensions;
 
-namespace spiderman.net.Abilities.WebTech
+namespace SpiderMan.Abilities.WebTech
 {
     /// <summary>
-    /// A ultimate brute mode for spidey's suit.
+    ///     A ultimate brute mode for spidey's suit.
     /// </summary>
     [WebTech("Suit Mode")]
     public class InstantKill : Tech
     {
         private bool _init;
+
+        /// <summary>
+        ///     Holds a list of particles we've spawned with this class.
+        /// </summary>
+        private readonly List<ParticleLooped> _particles = new List<ParticleLooped>();
 
         public InstantKill()
         {
@@ -25,22 +28,18 @@ namespace spiderman.net.Abilities.WebTech
         }
 
         /// <summary>
-        /// Holds a list of particles we've spawned with this class.
-        /// </summary>
-        private List<ParticleLooped> _particles = new List<ParticleLooped>();
-
-        /// <summary>
-        /// The name of this tech.
+        ///     The name of this tech.
         /// </summary>
         public override string Name => "Instant Kill";
 
         /// <summary>
-        /// The tech abilities description.
+        ///     The tech abilities description.
         /// </summary>
-        public override string Description => "Super-charges your fists for an ultimate brute mode, using tech collected from the Shocker's glove.";
-        
+        public override string Description =>
+            "Super-charges your fists for an ultimate brute mode, using tech collected from the Shocker's glove.";
+
         /// <summary>
-        /// Play's particle effects from one bone to another.
+        ///     Play's particle effects from one bone to another.
         /// </summary>
         /// <param name="startBone">The starting bone.</param>
         /// <param name="endBone">The ending bone.</param>
@@ -48,17 +47,18 @@ namespace spiderman.net.Abilities.WebTech
         /// <param name="scale">The scale of the particles.</param>
         /// <param name="direction">The direction to move each itteration.</param>
         /// <returns></returns>
-        private List<ParticleLooped> PlayElectricityBoneToBone(Bone startBone, Bone endBone, int numParticles, float scale, Vector3 direction)
+        private List<ParticleLooped> PlayElectricityBoneToBone(Bone startBone, Bone endBone, int numParticles,
+            float scale, Vector3 direction)
         {
             // "core", "ent_amb_elec_crackle"
 
             var boneCoord1 = PlayerCharacter.GetBoneCoord(startBone);
             var boneCoord2 = PlayerCharacter.GetBoneCoord(endBone);
-            float distance = Vector3.Distance(boneCoord1, boneCoord2);
-            float distanceToTravel = distance / numParticles;
+            var distance = Vector3.Distance(boneCoord1, boneCoord2);
+            var distanceToTravel = distance / numParticles;
             var particles = new List<ParticleLooped>();
 
-            for (int i = 0; i < numParticles; i++)
+            for (var i = 0; i < numParticles; i++)
             {
                 var p = PlayerCharacter.StartLoopedParticle("core", "ent_ray_prologue_elec_crackle_sp",
                     direction * (distanceToTravel * i), Vector3.Zero, startBone, scale);
@@ -69,13 +69,13 @@ namespace spiderman.net.Abilities.WebTech
         }
 
         /// <summary>
-        /// Called when the player melee hits an entity. Entity may return null if it was a freeform punch.
+        ///     Called when the player melee hits an entity. Entity may return null if it was a freeform punch.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         /// <param name="entity"></param>
         /// <param name="hitCoords"></param>
-        private void OnDamagedEntity(object sender, System.EventArgs e, Entity entity, Vector3 hitCoords)
+        private void OnDamagedEntity(object sender, EventArgs e, Entity entity, Vector3 hitCoords)
         {
             // Make sure this wasn't a freeform punch.
             if (entity == null)
@@ -108,7 +108,7 @@ namespace spiderman.net.Abilities.WebTech
                 var damage = 5000f / 45f;
 
                 // Shock the ped.
-                Utilities.ShockPed(ped, (int)damage);
+                Utilities.ShockPed(ped, (int) damage);
             }
 
             // Set the amount of time for slowmo.
@@ -122,10 +122,10 @@ namespace spiderman.net.Abilities.WebTech
 
             // Loop slowmotion and add a electric shock effect around the player.
             // We'll use the count variable to track when we should spawn the electricity.
-            int count = 0;
+            var count = 0;
 
             // Init a new random object.
-            Random rand = new Random();
+            var rand = new Random();
 
             var burstShock = false;
 
@@ -134,18 +134,18 @@ namespace spiderman.net.Abilities.WebTech
             {
                 // Every 4 loops spawn a bolt of electricity.
                 if (count % 4 == 0 && hitCoords != Vector3.Zero)
-                {
                     if (!burstShock)
                     {
                         // Play a shock particle on nearby entities.
                         var entities = World.GetNearbyEntities(PlayerCharacter.Position, 15);
-                        for (int i = 0; i < entities.Length; i++)
+                        for (var i = 0; i < entities.Length; i++)
                         {
                             var ent = entities[i];
                             if (ent == entity)
                                 continue;
 
-                            Utilities.CreateParticleChain(hitCoords, ent.Position, Vector3.Zero, 0.1f, particleScale: 0.2f);
+                            Utilities.CreateParticleChain(hitCoords, ent.Position, Vector3.Zero, 0.1f,
+                                particleScale: 0.2f);
 
                             if (ent.GetEntityType() == EntityType.Ped)
                             {
@@ -165,7 +165,6 @@ namespace spiderman.net.Abilities.WebTech
                         }
                         burstShock = true;
                     }
-                }
 
                 // Increment the count.
                 count++;
@@ -182,7 +181,7 @@ namespace spiderman.net.Abilities.WebTech
         }
 
         /// <summary>
-        /// Called when the tech is initialized.
+        ///     Called when the tech is initialized.
         /// </summary>
         public override void Activate()
         {
@@ -193,12 +192,15 @@ namespace spiderman.net.Abilities.WebTech
             //Graphics.StartScreenEffect(ScreenEffect.Rampage);
 
             // Spawn particles on the player's hands.
-            _particles.AddRange(PlayElectricityBoneToBone(Bone.SKEL_R_Hand, Bone.MH_R_Elbow, 3, 0.6f, Vector3.RelativeLeft));
-            _particles.AddRange(PlayElectricityBoneToBone(Bone.SKEL_L_Hand, Bone.MH_L_Elbow, 3, 0.6f, Vector3.RelativeLeft));
+            _particles.AddRange(PlayElectricityBoneToBone(Bone.SKEL_R_Hand, Bone.MH_R_Elbow, 3, 0.6f,
+                Vector3.RelativeLeft));
+            _particles.AddRange(PlayElectricityBoneToBone(Bone.SKEL_L_Hand, Bone.MH_L_Elbow, 3, 0.6f,
+                Vector3.RelativeLeft));
 
             // Also make him play a "ready" animation.
             if (PlayerCharacter.GetConfigFlag(60))
-                PlayerCharacter.Task.PlayAnimation("melee@unarmed@base", "melee_intro_plyr", 8.0f, -4.0f, 1250, AnimationFlags.AllowRotation, 0.0f);
+                PlayerCharacter.Task.PlayAnimation("melee@unarmed@base", "melee_intro_plyr", 8.0f, -4.0f, 1250,
+                    AnimationFlags.AllowRotation, 0.0f);
 
             // Enhance the suit.
             PlayerCharacter.IsExplosionProof = true;
@@ -206,7 +208,7 @@ namespace spiderman.net.Abilities.WebTech
         }
 
         /// <summary>
-        /// Called when the tech is deactivated.
+        ///     Called when the tech is deactivated.
         /// </summary>
         public override void Deactivate()
         {
@@ -228,7 +230,7 @@ namespace spiderman.net.Abilities.WebTech
         }
 
         /// <summary>
-        /// Called while the tech is being updated.
+        ///     Called while the tech is being updated.
         /// </summary>
         public override void Process()
         {

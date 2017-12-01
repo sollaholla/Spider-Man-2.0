@@ -1,27 +1,26 @@
-﻿using spiderman.net.Library;
-using spiderman.net.Abilities.Attributes;
-using spiderman.net.Abilities.Types;
+﻿using SpiderMan.Abilities.Attributes;
+using SpiderMan.Abilities.Types;
 
-namespace spiderman.net.Abilities.WebTech
+namespace SpiderMan.Abilities.WebTech
 {
     /// <summary>
-    /// The default suit mode for Peter.
+    ///     The default suit mode for Peter.
     /// </summary>
     [WebTech("Suit Mode", IsDefault = true)]
     public class TrainingWheelsProtocol : Tech
     {
         /// <summary>
-        /// The name of the tech.
+        ///     The name of the tech.
         /// </summary>
         public override string Name => "Training Wheels";
 
         /// <summary>
-        /// The description of the tech.
+        ///     The description of the tech.
         /// </summary>
         public override string Description => "The default suit mode.";
 
         /// <summary>
-        /// Called when the tech is activated.
+        ///     Called when the tech is activated.
         /// </summary>
         public override void Activate()
         {
@@ -30,14 +29,14 @@ namespace spiderman.net.Abilities.WebTech
         }
 
         /// <summary>
-        /// Called when the tech is deactivated.
+        ///     Called when the tech is deactivated.
         /// </summary>
         public override void Deactivate()
         {
         }
 
         /// <summary>
-        /// Called when the tech needs to be updated.
+        ///     Called when the tech needs to be updated.
         /// </summary>
         public override void Process()
         {

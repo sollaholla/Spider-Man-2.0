@@ -1,15 +1,15 @@
-﻿using spiderman.net.Abilities.Attributes;
-using spiderman.net.Abilities.Types;
-using spiderman.net.Library;
+﻿using SpiderMan.Abilities.Attributes;
+using SpiderMan.Abilities.Types;
 
-namespace spiderman.net.Abilities.WebTech
+namespace SpiderMan.Abilities.WebTech
 {
     [WebTech("Projectiles", IsDefault = true)]
     public class WebGrenade : Tech
     {
         public override string Name => "Web Grenade";
 
-        public override string Description => "A timed device that, when triggered, creates a series of webs sticking " +
+        public override string Description =>
+            "A timed device that, when triggered, creates a series of webs sticking " +
             "nearby enemies together.";
 
         public override void Activate()

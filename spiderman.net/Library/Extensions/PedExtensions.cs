@@ -2,25 +2,15 @@
 using GTA.Math;
 using GTA.Native;
 
-namespace spiderman.net.Library.Extensions
+namespace SpiderMan.Library.Extensions
 {
     /// <summary>
-    /// Used for SetIKTarget.
-    /// </summary>
-    public enum IKIndex
-    {
-        Head = 1,
-        LeftArm = 3,
-        RightArm = 4
-    }
-
-    /// <summary>
-    /// A class that extends the GTA.Ped type.
+    ///     A class that extends the GTA.Ped type.
     /// </summary>
     public static class PedExtensions
     {
         /// <summary>
-        /// Start a looped particle on the specified ped.
+        ///     Start a looped particle on the specified ped.
         /// </summary>
         /// <param name="ped">The ped.</param>
         /// <param name="assetName">The name of the asset that holds the particle.</param>
@@ -33,14 +23,16 @@ namespace spiderman.net.Library.Extensions
         /// <param name="yAxis"></param>
         /// <param name="zAxis"></param>
         /// <returns></returns>
-        public static ParticleLooped StartLoopedParticle(this Ped ped, string assetName, string effectName, 
-            Vector3 offset, Vector3 rotation, Bone bone, float scale, 
+        public static ParticleLooped StartLoopedParticle(this Ped ped, string assetName, string effectName,
+            Vector3 offset, Vector3 rotation, Bone bone, float scale,
             bool xAxis = false, bool yAxis = false, bool zAxis = false)
         {
             var boneIndex = ped.GetBoneIndex(bone);
             Function.Call(Hash._SET_PTFX_ASSET_NEXT_CALL, assetName);
-            return new ParticleLooped(Function.Call<int>(Hash.START_PARTICLE_FX_LOOPED_ON_PED_BONE, effectName, ped.Handle,
-                offset.X, offset.Y, offset.Z, rotation.X, rotation.Y, rotation.Z, (int)bone, scale, xAxis, yAxis, zAxis));
+            return new ParticleLooped(Function.Call<int>(Hash.START_PARTICLE_FX_LOOPED_ON_PED_BONE, effectName,
+                ped.Handle,
+                offset.X, offset.Y, offset.Z, rotation.X, rotation.Y, rotation.Z, (int) bone, scale, xAxis, yAxis,
+                zAxis));
         }
 
         //public static void foo()
@@ -49,7 +41,7 @@ namespace spiderman.net.Library.Extensions
         //}
 
         /// <summary>
-        /// Disable / enable ped pain audio (screaming, yelling, etc.) using a toggle.
+        ///     Disable / enable ped pain audio (screaming, yelling, etc.) using a toggle.
         /// </summary>
         /// <param name="ped">The ped whom we'd like to disable the pain audio on.</param>
         /// <param name="toggle">The toggle (true = disabled | false = enabled).</param>
@@ -59,7 +51,7 @@ namespace spiderman.net.Library.Extensions
         }
 
         /// <summary>
-        /// Clear's the ped's tasks instantly.
+        ///     Clear's the ped's tasks instantly.
         /// </summary>
         /// <param name="ped">The ped.</param>
         public static void ClearTasksImmediately(this Ped ped)
@@ -68,7 +60,7 @@ namespace spiderman.net.Library.Extensions
         }
 
         /// <summary>
-        /// Returns true if the ped is in parachute freefall.
+        ///     Returns true if the ped is in parachute freefall.
         /// </summary>
         /// <param name="ped">The ped to check.</param>
         /// <returns></returns>
@@ -78,16 +70,18 @@ namespace spiderman.net.Library.Extensions
         }
 
         /// <summary>
-        /// Set's the ik target for this ped.
+        ///     Set's the ik target for this ped.
         /// </summary>
         /// <param name="ped"></param>
-        public static void SetIKTarget(this Ped ped, IKIndex index, Vector3 position, float blendInSpeed, float blendOutSpeed)
+        public static void SetIKTarget(this Ped ped, IKIndex index, Vector3 position, float blendInSpeed,
+            float blendOutSpeed)
         {
-            Function.Call(Hash.SET_IK_TARGET, ped.Handle, (int)index, 0, 0, position.X, position.Y, position.Z, 0, blendInSpeed, blendOutSpeed);
+            Function.Call(Hash.SET_IK_TARGET, ped.Handle, (int) index, 0, 0, position.X, position.Y, position.Z, 0,
+                blendInSpeed, blendOutSpeed);
         }
 
         /// <summary>
-        /// Make this ped ragdoll for the speicified duration.
+        ///     Make this ped ragdoll for the speicified duration.
         /// </summary>
         /// <param name="ped">The ped.</param>
         /// <param name="duration">The amount of time in ms to ragdoll.</param>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace spiderman.net.Library.Memory
+namespace SpiderMan.Library.Memory
 {
     /// <summary>
     ///     Credits to CamxxCore. IQ 195
@@ -12,11 +12,10 @@ namespace spiderman.net.Library.Memory
     {
         public sealed class Pattern
         {
-            private readonly string _bytes, _mask;
-            private IntPtr _result;
-
             private static NativeMethods.MODULEINFO _moduleHandle;
             private static long _moduleAddr;
+            private readonly string _bytes, _mask;
+            private IntPtr _result;
 
             static Pattern()
             {
@@ -53,7 +52,7 @@ namespace spiderman.net.Library.Memory
                 var m = _mask.ToCharArray();
 
                 for (; _moduleAddr < end; _moduleAddr++)
-                    if (BCompare((byte*)_moduleAddr, b, m))
+                    if (BCompare((byte*) _moduleAddr, b, m))
                         return new IntPtr(_moduleAddr);
 
                 return IntPtr.Zero;

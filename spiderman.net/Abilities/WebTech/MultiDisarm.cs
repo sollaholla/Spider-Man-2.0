@@ -1,28 +1,28 @@
-﻿using GTA;
+﻿using System.Collections.Generic;
+using GTA;
 using GTA.Math;
-using spiderman.net.Library;
 using GTA.Native;
-using spiderman.net.Scripts;
-using System.Collections.Generic;
-using Rope = spiderman.net.Library.Rope;
-using spiderman.net.Abilities.Types;
-using spiderman.net.Abilities.Attributes;
+using SpiderMan.Abilities.Attributes;
+using SpiderMan.Abilities.Types;
+using Rope = SpiderMan.Library.Types.Rope;
 
-namespace spiderman.net.Abilities.WebTech
+namespace SpiderMan.Abilities.WebTech
 {
     [WebTech("Attack Mode")]
     public class MultiDisarm : Tech
     {
         public override string Name => "Multi Disarm";
 
-        public override string Description => "Allows your web shooter to target nearby enemy weapons so you can disarm multiple enemies.";
+        public override string Description =>
+            "Allows your web shooter to target nearby enemy weapons so you can disarm multiple enemies.";
 
         public override void Activate()
         {
         }
 
         public override void Deactivate()
-        { }
+        {
+        }
 
         public override void Process()
         {
@@ -35,7 +35,7 @@ namespace spiderman.net.Abilities.WebTech
                 var playerPosition = PlayerCharacter.Position;
                 var pList = new List<Ped>();
 
-                for (int i = 0; i < peds.Length; i++)
+                for (var i = 0; i < peds.Length; i++)
                 {
                     var ped = peds[i];
                     if (ped.IsPlayer) continue;
@@ -48,7 +48,8 @@ namespace spiderman.net.Abilities.WebTech
 
                     if (angle < 90f)
                     {
-                        var ray = WorldProbe.StartShapeTestRay(playerPosition, ped.Position, ShapeTestFlags.IntersectMap, PlayerCharacter);
+                        var ray = WorldProbe.StartShapeTestRay(playerPosition, ped.Position,
+                            ShapeTestFlags.IntersectMap, PlayerCharacter);
                         var result = ray.GetResult();
                         if (result.Hit) continue;
                         if (ped.Weapons.Current == null) continue;
@@ -90,7 +91,7 @@ namespace spiderman.net.Abilities.WebTech
         private void DisarmPed(Ped ped)
         {
             ped.Task.ClearAllImmediately();
-            ped.Task.PlayAnimation("missheist_agency3astumble_walk", "stumble_walk_player1", 
+            ped.Task.PlayAnimation("missheist_agency3astumble_walk", "stumble_walk_player1",
                 -8.0f, 4.0f, 1250, AnimationFlags.AllowRotation, 0.0f);
             var weaponObject = ped.Weapons.CurrentWeaponObject;
             if (weaponObject == null) return;
