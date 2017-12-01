@@ -48,8 +48,7 @@ namespace SpiderMan
             Tick += OnTick;
             Aborted += OnAborted;
             Interval = 0;
-
-            _scriptComms.Init("Spider-Man V", "by Sollaholla");
+            //_scriptComms.Init("Spider-Man V", "by Sollaholla");
         }
 
         /// <summary>
@@ -88,20 +87,13 @@ namespace SpiderMan
             if (!Entity.Exists(PlayerCharacter))
             {
                 // Set the new ped.
-                PlayerCharacter = Game.Player.Character;
-                PlayerCharacter.MaxHealth = 3000;
-                PlayerCharacter.Health = 3000;
+                SetPlayerCharacter();
                 StopAllAbilities();
                 _initialized = false;
             }
-            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 1000f);
 
-            // Make sure the player doesn't have parachutes..
-            Function.Call(Hash.SET_PLAYER_HAS_RESERVE_PARACHUTE, Game.Player.Handle, false);
-
-            // Remove the player parachute.
-            if (PlayerCharacter.Weapons.HasWeapon(WeaponHash.Parachute))
-                PlayerCharacter.Weapons.Remove(WeaponHash.Parachute);
+            // Stop the player from using/having a parachute.
+            StopPlayerFromUsingParachute();
 
             // Initialize our abilities.
             Init();
@@ -112,6 +104,23 @@ namespace SpiderMan
             // Now we need to update each of these abilities.
             foreach (var ability in _abilities)
                 ability.Update();
+        }
+
+        private static void SetPlayerCharacter()
+        {
+            PlayerCharacter = Game.Player.Character;
+            PlayerCharacter.MaxHealth = 3000;
+            PlayerCharacter.Health = 3000;
+            Function.Call((Hash)0x8BC515BAE4AAF8FF, Game.Player.Handle, 1f);
+            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 100f);
+        }
+
+        private static void StopPlayerFromUsingParachute()
+        {
+            // Remove the player parachute.
+            Function.Call(Hash.SET_PLAYER_HAS_RESERVE_PARACHUTE, Game.Player.Handle, false);
+            if (PlayerCharacter.Weapons.HasWeapon(WeaponHash.Parachute))
+                PlayerCharacter.Weapons.Remove(WeaponHash.Parachute);
         }
 
         /// <summary>
