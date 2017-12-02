@@ -137,7 +137,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                         if (rotationHelper.HasCollidedWithAnything)
                         {
-                            WebZip.OverrideFallHeight(float.MaxValue);
                             var normal = rotationHelper.GetLastCollisionNormal();
                             var dir = Vector3.Reflect(rotationHelper.Velocity, normal);
                             dir.Normalize();
@@ -159,7 +158,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
                         if (PlayerCharacter.HeightAboveGround <= 2f)
                         {
                             // The swing was canceled.
-                            WebZip.OverrideFallHeight(float.MaxValue);
                             break;
                         }
 
@@ -274,7 +272,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
 
             PlayerCharacter.Quaternion.Normalize();
-            WebZip.OverrideFallHeight(float.MaxValue);
         }
 
         /// <summary>

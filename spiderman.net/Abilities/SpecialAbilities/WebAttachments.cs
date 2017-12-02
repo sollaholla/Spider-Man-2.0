@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using GTA;
 using GTA.Math;
 using SpiderMan.Abilities.Types;
@@ -233,24 +234,29 @@ namespace SpiderMan.Abilities.SpecialAbilities
         private void StartRopeAttachment()
         {
             Game.DisableControlThisFrame(2, Control.ParachuteSmoke);
-            if (Game.IsDisabledControlJustPressed(2, Control.ParachuteSmoke) && !Attached)
-            {
-                // Do the camera raycast.
-                ShapeTestResult result = DoCameraRay(500f);
 
-                // Check if the result hit an entity.
-                if (result.Hit && result.EntityHit != null)
-                {
-                    // Aim at the entity.
-                    OnAimAtEntity(result.EntityHit);
+            // Do the camera raycast.
+            var result = DoCameraRay(500f);
 
-                    // Shoot the web.
-                    OnShotWeb(_webShooterHelper, result.EntityHit);
+            // Check if the result hit an entity.
+            if (!result.Hit || result.EntityHit == null) return;
 
-                    // Set the entity hit.
-                    _ropeAttachedEntity = result.EntityHit;
-                }
-            }
+            var bounds = result.EntityHit.Model.GetDimensions();
+            var z = bounds.Z / 2;
+
+            World.DrawMarker(MarkerType.UpsideDownCone, result.EntityHit.Position + Vector3.WorldUp * z * 1.5f, Vector3.Zero, Vector3.Zero,
+                new Vector3(0.3f, 0.3f, 0.3f), Color.White);
+
+            if (!Game.IsDisabledControlJustPressed(2, Control.ParachuteSmoke) || Attached) return;
+
+            // Aim at the entity.
+            OnAimAtEntity(result.EntityHit);
+
+            // Shoot the web.
+            OnShotWeb(_webShooterHelper, result.EntityHit);
+
+            // Set the entity hit.
+            _ropeAttachedEntity = result.EntityHit;
         }
 
         private void UpdateAttachments()
@@ -319,7 +325,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
             PlayerCharacter.Velocity = Vector3.WorldUp * 15f;
             PlayerCharacter.SetConfigFlag(60, false);
             GameWaiter.Wait(10);
-            WebZip.OverrideFallHeight(float.MaxValue);
             PlayerCharacter.Task.Skydive();
             GameWaiter.Wait(1);
             PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle", 2.0f, -2.0f, 1150,
@@ -331,6 +336,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 Game.SetControlNormal(2, Control.ParachutePitchUpDown, -1f);
                 Script.Yield();
             }
+            WebZip.OverrideFallHeight(float.MaxValue);
         }
 
         private void EndAttachment()

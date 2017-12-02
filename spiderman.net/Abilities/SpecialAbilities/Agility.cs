@@ -1,8 +1,11 @@
-﻿using GTA;
+﻿using System.Globalization;
+using GTA;
 using GTA.Math;
+using GTA.Native;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ScriptThreads;
 
 namespace SpiderMan.Abilities.SpecialAbilities
 {
@@ -16,6 +19,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
         ///     player is walking / running / or spirning.
         /// </summary>
         private PlayerState _playerState;
+
+        private float _desiredSpeed;
 
         /// <summary>
         ///     Our main constructor.
@@ -33,6 +38,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
         public override void Update()
         {
             // Loop this.
+            if (PlayerCharacter.IsRagdoll)
+            {
+                GameWaiter.Wait(300);
+                PlayerCharacter.Task.ClearAllImmediately();
+            }
             PlayerCharacter.CanRagdoll = false;
 
             // DarkSouls-style roll.
@@ -60,7 +70,17 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 //GameGraphics.DrawLine(PlayerCharacter.Position, PlayerCharacter.Position + direction * 5f, Color.Red);
 
                 // For now we'll use a constant for the desired speed.
-                const float desiredSpeed = 20f;
+                var velocity = direction * _desiredSpeed;
+
+                if (_playerState != PlayerState.None)
+                {
+                    _desiredSpeed = Maths.Lerp(_desiredSpeed, 2000f, Time.UnscaledDeltaTime * 0.4f);
+                }
+                else
+                {
+                    _desiredSpeed = Maths.Lerp(_desiredSpeed, 750f, Time.UnscaledDeltaTime * 5f);
+                    Game.Player.SetRunSpeedMultThisFrame(1);
+                }
 
                 //Now for our switch case we're going to see 
                 //what state the player is in.
@@ -69,13 +89,23 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     // Let's set the velocity to the direction 
                     // multiplied by our desired speed.
                     case PlayerState.Run:
-                        PlayerCharacter.Velocity = direction * desiredSpeed / 2; // dividing by 2 so running is slower.
+                        PlayerCharacter.Velocity =
+                            velocity / 2 * Time.UnscaledDeltaTime; // dividing by 2 so running is slower.
                         break;
                     case PlayerState.Sprint:
-                        PlayerCharacter.Velocity = direction * desiredSpeed;
+                        PlayerCharacter.Velocity = velocity * Time.UnscaledDeltaTime;
+                        Game.Player.SetRunSpeedMultThisFrame((_desiredSpeed / 2000f) + 0.25f);
+                        Function.Call(Hash.SET_PED_MOTION_BLUR, PlayerCharacter.Handle, 2.0f);
                         break;
                 }
             }
+            else
+            {
+                _desiredSpeed = Maths.Lerp(_desiredSpeed, 750f, Time.UnscaledDeltaTime * 5f);
+                Game.Player.SetRunSpeedMultThisFrame(1);
+            }
+
+            //UI.ShowSubtitle(_desiredSpeed.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -86,7 +116,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
             if (!Game.IsDisabledControlJustPressed(2, Control.LookBehind) || !PlayerCharacter.GetConfigFlag(60)
                 || !PlayerCharacter.IsRunning && !PlayerCharacter.IsSprinting && !PlayerCharacter.IsGettingUp)
                 return;
+            DoRoll();
+        }
 
+        private void DoRoll()
+        {
             if (PlayerCharacter.IsGettingUp || PlayerCharacter.IsRagdoll)
                 PlayerCharacter.Task.ClearAllImmediately();
             else PlayerCharacter.Task.ClearAll();
@@ -181,6 +215,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             // We need to reset these flags when the mod stops.
             PlayerCharacter.CanRagdoll = true;
             PlayerCharacter.IsCollisionProof = false;
+            Game.Player.SetRunSpeedMultThisFrame(1);
         }
 
         /// <summary>

@@ -36,9 +36,24 @@ namespace SpiderMan
         private bool _initMemory;
 
         /// <summary>
+        /// The main menu.
+        /// </summary>
+        private readonly UIMenu _mainMenu;
+
+        /// <summary>
+        /// True if we blocked the script communicator menu.
+        /// </summary>
+        private bool _wasScriptCommsBlocked;
+
+        /// <summary>
+        /// The menu pool.
+        /// </summary>
+        private readonly MenuPool _menuPool;
+
+        /// <summary>
         ///     The script communicator. (used by the script communicator menu)
         /// </summary>
-        //private readonly ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
+        private readonly ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
 
         /// <summary>
         ///     The main constructor.
@@ -48,13 +63,35 @@ namespace SpiderMan
             Tick += OnTick;
             Aborted += OnAborted;
             Interval = 0;
-            //_scriptComms.Init("Spider-Man V", "by Sollaholla");
+
+            _scriptComms.Init("Spider-Man Script", "Version 2.0");
+            _mainMenu = new UIMenu("Spider-Man Script");
+            _menuPool = new MenuPool();
+            _menuPool.AddMenu(_mainMenu);
+
+            var enableItem = new UIMenuItem("Activate Powers") { Tag = "m_Enabled", Description = "Enable the player's powers." };
+            var disableItem = new UIMenuItem("Disable Powers") { Tag = "m_Disabled", Description = "Disable the player's powers." };
+            _mainMenu.AddMenuItem(enableItem);
+            _mainMenu.AddMenuItem(disableItem);
+
+            _mainMenu.OnItemSelect += (a0, item, a2) =>
+            {
+                if (item == enableItem)
+                    ModEnabled = true;
+                else if (item == disableItem)
+                    ModEnabled = false;
+            };
         }
 
         /// <summary>
         ///     The local player's character component.
         /// </summary>
         public static Ped PlayerCharacter { get; private set; }
+
+        /// <summary>
+        /// True if this mod is enabled.
+        /// </summary>
+        public static bool ModEnabled { get; private set; }
 
         /// <summary>
         ///     Called when the mod is reloaded / crashed.
@@ -83,6 +120,16 @@ namespace SpiderMan
         /// <param name="e"></param>
         private void OnTick(object sender, EventArgs e)
         {
+            UpdateMenus();
+
+            if (!ModEnabled)
+            {
+                if (!_initAbilities) return;
+                StopAllAbilities();
+                _initAbilities = false;
+                return;
+            }
+
             // Update our player's character in case he changes models.
             if (!Entity.Exists(PlayerCharacter))
             {
@@ -92,6 +139,9 @@ namespace SpiderMan
                 _initAbilities = false;
             }
 
+            Function.Call((Hash)0xC388A0F065F5BC34, Game.Player.Handle, 1f);
+            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 1000f);
+
             // Stop the player from using/having a parachute.
             StopPlayerFromUsingParachute();
 
@@ -100,8 +150,29 @@ namespace SpiderMan
             UpdateAbilities();
         }
 
+        private void UpdateMenus()
+        {
+            // Process the menus.
+            _menuPool.ProcessMenus();
+
+            if (_scriptComms.IsEventTriggered())
+            {
+                Wait(100); // Wait so input doesn't trigger again.
+                _mainMenu.IsVisible = true;
+                _scriptComms.ResetEvent();
+                _scriptComms.BlockScriptCommunicatorModMenu();
+                _wasScriptCommsBlocked = true;
+            }
+
+            if (_mainMenu.IsVisible) return;
+            if (!_wasScriptCommsBlocked) return;
+            _wasScriptCommsBlocked = false;
+            _scriptComms.UnblockScriptCommunicatorModMenu();
+        }
+
         private void UpdateAbilities()
         {
+
             // If the gameplay camera is not rendering (menyoo spooner for example),
             // then just return until otherwise.
             if (!GameplayCamera.IsRendering)
@@ -117,8 +188,6 @@ namespace SpiderMan
             PlayerCharacter = Game.Player.Character;
             PlayerCharacter.MaxHealth = 3000;
             PlayerCharacter.Health = 3000;
-            Function.Call((Hash)0x8BC515BAE4AAF8FF, Game.Player.Handle, 1f);
-            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 100f);
         }
 
         private static void StopPlayerFromUsingParachute()
@@ -153,12 +222,10 @@ namespace SpiderMan
 
         private void InitMemory()
         {
-            if (!_initMemory)
-            {
-                HandlingFile.Init();
-                CTimeScale.Init();
-                _initMemory = true;
-            }
+            if (_initMemory) return;
+            HandlingFile.Init();
+            CTimeScale.Init();
+            _initMemory = true;
         }
     }
 }

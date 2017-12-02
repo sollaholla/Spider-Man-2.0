@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using GTA;
@@ -245,31 +246,42 @@ namespace SpiderMan.Abilities.SpecialAbilities
         {
             // Check if we pressed the attack button.
             DisableControls();
-            if (!Game.IsDisabledControlPressed(2, Control.MeleeAttackAlternate) && 
-                !Game.IsControlPressed(2, Control.MeleeAttackAlternate))
-                return;
 
             // Now get the closest entity and validate it's type.
             var targetEntity = GetClosestTarget(8);
             //EntityType t;
             if (targetEntity == null || targetEntity.GetEntityType() == EntityType.Object) return;
 
+            var bounds = targetEntity.Model.GetDimensions();
+            var z = bounds.Z / 2;
+
+            World.DrawMarker(MarkerType.UpsideDownCone, targetEntity.Position + Vector3.WorldUp * z * 2f, Vector3.Zero, Vector3.Zero,
+                new Vector3(0.3f, 0.3f, 0.3f), Color.DarkRed);
+
+            if (!Game.IsDisabledControlPressed(2, Control.MeleeAttackAlternate) &&
+                !Game.IsControlPressed(2, Control.MeleeAttackAlternate))
+                return;
+
             //int ms = 0;
             PlayerCharacter.IsCollisionProof = true;
             PlayerCharacter.IsMeleeProof = true;
             PlayerCharacter.Task.ClearAll();
+            var m = PlayerCharacter.Model.GetDimensions();
+            PlayerCharacter.SetCoordsSafely(PlayerCharacter.Position + Vector3.WorldDown * m.Z / 2);
             PlayerCharacter.Velocity = Vector3.Zero;
             Function.Call(Hash.SET_ENTITY_RECORDS_COLLISIONS, PlayerCharacter.Handle, false);
-            WebZip.OverrideFallHeight(0f);
 
             GetComboMoveData(out var dict, out var anim, out var duration, out var punchTime, out var bone);
 
-            PlayerCharacter.Task.PlayAnimation(dict, anim, 
+            PlayerCharacter.Task.PlayAnimation(dict, anim,
                 8.0f, -4.0f, duration, AnimationFlags.AllowRotation, 0.0f);
 
             // Begin our loop.
             GameWaiter.DoWhile(1000, () =>
             {
+                if (PlayerCharacter.IsRagdoll)
+                    return false;
+
                 // Continue to disable the controls.
                 Controls.DisableControlsKeepRecording(2);
                 Game.EnableControlThisFrame(2, Control.LookLeftRight);
@@ -282,7 +294,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                 // Set the player heading towards the entity.
                 PlayerCharacter.Heading = direction.ToHeading();
-                PlayerCharacter.Velocity = direction / 0.25f/* + targetEntity.Velocity*/;
+                PlayerCharacter.Velocity = direction.Normalized * direction.Length() * 2 / 0.25f/* + targetEntity.Velocity*/;
                 PlayerCharacter.SetConfigFlag(60, true);
                 PlayerCharacter.SetConfigFlag(104, true);
                 Game.SetControlNormal(2, Control.MoveLeftRight, 0f);
@@ -297,7 +309,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 if (PlayerCharacter.GetAnimationTime(dict, anim) > punchTime)
                 {
                     var ray = World.RaycastCapsule(boneCoord, boneCoord, 1f,
-                        (IntersectOptions) (int) (ShapeTestFlags.IntersectObjects |
+                        (IntersectOptions)(int)(ShapeTestFlags.IntersectObjects |
                                                   ShapeTestFlags.IntersectPeds |
                                                   ShapeTestFlags.IntersectVehicles), PlayerCharacter);
                     if (ray.DitHitEntity)
@@ -321,7 +333,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             PlayerCharacter.IsMeleeProof = false;
             PlayerCharacter.IsCollisionProof = false;
             Function.Call(Hash.SET_ENTITY_RECORDS_COLLISIONS, PlayerCharacter.Handle, true);
-            GameWaiter.Wait(150);
+            GameWaiter.Wait(75);
         }
 
         private void GetComboMoveData(out string animDict, out string animName, out int animDuration, out float punchTime, out Bone bone)
@@ -377,7 +389,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             if (closestPed == null || closestVehicle == null) return closestPed ?? closestVehicle;
             var dist1 = closestPed.Position.DistanceToSquared(PlayerCharacter.Position);
             var dist2 = closestVehicle.Position.DistanceToSquared(PlayerCharacter.Position);
-            return dist1 <= dist2 ? closestPed : closestVehicle;
+            return dist1 <= dist2 && !((Ped)closestPed).IsInVehicle() ? closestPed : closestVehicle;
         }
 
         private void ApplyDamage(Vector3 direction, Entity entity, EntityType type, Vector3 hitCoords)
@@ -395,12 +407,12 @@ namespace SpiderMan.Abilities.SpecialAbilities
             else if (type == EntityType.Ped)
             {
                 var ped = new Ped(entity.Handle);
-                if (ped.CanRagdoll)
-                    ped.SetToRagdoll(0);
+                ped.SetToRagdoll(0);
                 ped.Velocity = direction * 35;
                 ped.ApplyDamage(50);
                 Audio.ReleaseSound(Audio.PlaySoundFromEntity(entity, "FLASHLIGHT_HIT_BODY"));
             }
+            DamagedEntity?.Invoke(this, null, entity, hitCoords);
         }
 
         /// <summary>

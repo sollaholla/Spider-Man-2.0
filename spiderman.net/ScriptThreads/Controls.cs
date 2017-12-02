@@ -19,6 +19,8 @@ namespace SpiderMan.ScriptThreads
 
         private void OnTick(object sender, EventArgs e)
         {
+            if (!CoreScript.ModEnabled)
+                return;
             Game.DisableControlThisFrame(2, Control.SelectWeapon);
             Game.DisableControlThisFrame(2, Control.Cover);
             Game.DisableControlThisFrame(2, Control.ParachuteDeploy);

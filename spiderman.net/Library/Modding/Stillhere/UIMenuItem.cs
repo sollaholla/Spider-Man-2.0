@@ -33,6 +33,7 @@ namespace SpiderMan.Library.Modding.Stillhere
         private dynamic _value { get; set; }
         private string _description { get; set; }
         public float DescriptionWidth { get; set; }
+        public object Tag { get; set; }
 
         public string Text
         {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using GTA;
 using GTA.Math;
 using SpiderMan.Abilities.Attributes;
@@ -42,14 +43,20 @@ namespace SpiderMan.Abilities.WebTech
         {
             Game.DisableControlThisFrame(2, Control.ParachuteSmoke);
 
-            if (Game.IsDisabledControlJustPressed(2, Control.ParachuteSmoke))
-            {
-                var camRay = WorldProbe.StartShapeTestRay(GameplayCamera.Position, GameplayCamera.Position +
-                                                                                   GameplayCamera.Direction * 100f,
-                    ShapeTestFlags.IntersectPeds | ShapeTestFlags.IntersectVehicles,
-                    PlayerCharacter).GetResult();
+            var camRay = WorldProbe.StartShapeTestRay(GameplayCamera.Position, GameplayCamera.Position +
+                                                                               GameplayCamera.Direction * 100f,
+                ShapeTestFlags.IntersectPeds | ShapeTestFlags.IntersectVehicles,
+                PlayerCharacter).GetResult();
 
-                if (camRay.Hit)
+            if (camRay.Hit)
+            {
+                var bounds = camRay.EntityHit.Model.GetDimensions();
+                var z = bounds.Z / 2;
+
+                World.DrawMarker(MarkerType.UpsideDownCone, camRay.EntityHit.Position + Vector3.WorldUp * z * 1.5f, Vector3.Zero, Vector3.Zero,
+                    new Vector3(0.3f, 0.3f, 0.3f), Color.White);
+
+                if (Game.IsDisabledControlJustPressed(2, Control.ParachuteSmoke))
                 {
                     var directionToEntity = camRay.EntityHit.Position - PlayerCharacter.Position;
                     var distance = directionToEntity.Length();
@@ -61,7 +68,7 @@ namespace SpiderMan.Abilities.WebTech
 
                     // Play the web shoot animation.
                     PlayerCharacter.Task.PlayAnimation("guard_reactions", "1hand_aiming_to_idle", 8.0f, -8.0f, -1,
-                        (AnimationFlags) 40, 0.0f);
+                        (AnimationFlags)40, 0.0f);
 
                     var playerBone = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
                     var rope = Rope.AddRope(playerBone, distance, GTARopeType.ThickRope, 0.2f, 0.1f, true, false);

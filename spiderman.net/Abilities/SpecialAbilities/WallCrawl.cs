@@ -108,20 +108,21 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     GameWaiter.Wait(10);
                     if (Game.IsDisabledControlPressed(2, Control.Sprint))
                     {
+                        PlayerCharacter.IsCollisionProof = true;
+                        PlayerCharacter.SetConfigFlag(60, false);
                         PlayerCharacter.Task.Skydive();
                         PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
                             2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
                         PlayerCharacter.Velocity = Vector3.WorldUp * 25f;
-                        WebZip.OverrideFallHeight(float.MaxValue);
                         GameWaiter.Wait(100);
+                        PlayerCharacter.IsCollisionProof = false;
                     }
                     else
                     {
                         PlayerCharacter.Task.Climb();
                         WebZip.OverrideFallHeight(0f);
                     }
-                    cancelClimb = true;
-//                    break;
+                    break;
                 }
 
                 // Set the surface position.
@@ -165,8 +166,10 @@ namespace SpiderMan.Abilities.SpecialAbilities
             {
                 cancelClimb = true;
                 JumpOff(attachmentObject, 25);
+                PlayerCharacter.Task.ClearAllImmediately();
                 PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front", 8.0f, -4.0f, 500,
                     AnimationFlags.AllowRotation, 0.0f);
+                Script.Yield();
                 PlayerCharacter.Task.Skydive();
                 return;
             }
