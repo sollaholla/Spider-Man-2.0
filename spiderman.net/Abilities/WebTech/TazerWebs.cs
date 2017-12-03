@@ -4,10 +4,13 @@ using GTA;
 using GTA.Math;
 using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.SpecialAbilities;
+using SpiderMan.Abilities.SpecialAbilities.PlayerOnly;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
@@ -16,12 +19,13 @@ namespace SpiderMan.Abilities.WebTech
     [WebTech("Web Mode")]
     public class TazerWebs : Tech
     {
-        public TazerWebs()
+        public TazerWebs(SpiderManProfile profile) : 
+            base(profile)
         {
             Abilities = new List<SpecialAbility>
             {
-                new WebZip(),
-                new WebSwing()
+                new WebZip(profile),
+                new WebSwing(profile)
             };
             Streaming.RequestAnimationDictionary("ragdoll@human");
         }

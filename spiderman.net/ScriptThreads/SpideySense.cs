@@ -23,7 +23,7 @@ namespace SpiderMan.ScriptThreads
 
         private void OnTick(object sender, EventArgs e)
         {
-            if (!CoreScript.ModEnabled)
+            if (!PlayerController.ModEnabled)
             {
                 if (!_spideySenseOn) return;
                 Game.TimeScale = 0;

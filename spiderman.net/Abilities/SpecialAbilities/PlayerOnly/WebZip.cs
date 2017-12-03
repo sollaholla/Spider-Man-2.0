@@ -5,10 +5,11 @@ using GTA.Math;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem.SpiderManScript;
 using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
-namespace SpiderMan.Abilities.SpecialAbilities
+namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 {
     /// <summary>
     ///     Allows the player to grapple onto vehicles,
@@ -17,6 +18,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
     public class WebZip : SpecialAbility
     {
         public delegate void OnCatchLanding(object sender, EventArgs e, float fallHeight);
+
+        /// <summary>
+        /// Called once the player lands on the ground.
+        /// </summary>
+        public static event OnCatchLanding CaughtLanding;
 
         // A flag to help us know
         // when the player was falling.
@@ -35,7 +41,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
         ///     Called in the first tick of the main
         ///     script.
         /// </summary>
-        public WebZip()
+        public WebZip(SpiderManProfile profile) : base(profile)
         {
             // Make sure to request rope textures,
             // if they haven't already loaded.
@@ -51,8 +57,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
             new Model("bmx").Request();
         }
-
-        public static event OnCatchLanding CaughtLanding;
 
         /// <summary>
         ///     Overrieds our internal fall height to the specified value.
@@ -70,7 +74,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
         public override void Update()
         {
             // Disable the player's pain audio.
-            PlayerCharacter.DisablePainAudio(true);
+            Profile.LocalUser.DisablePainAudio(true);
 
             // Checks the player's fall height.
             CheckFallAndCatchLanding();
@@ -85,22 +89,28 @@ namespace SpiderMan.Abilities.SpecialAbilities
             var entity = Utilities.GetAimedEntity(rayMaxDist, out var hitPoint, out var entityType);
 
             // Now do the corresponding logical operation.
-            if (entityType == EntityType.None) WorldGrapple(hitPoint);
-            else if (entityType == EntityType.Vehicle) VehicleGrapple((Vehicle) entity);
-            else if (entityType == EntityType.Ped) PedGrapple((Ped) entity);
+            switch (entityType)
+            {
+                case EntityType.None:
+                    WorldGrapple(hitPoint);
+                    break;
+                case EntityType.Vehicle:
+                    VehicleGrapple((Vehicle)entity);
+                    break;
+            }
         }
 
         /// <summary>
         ///     Catch our landing so we don't die from high falls.
         /// </summary>
-        private bool CheckFallAndCatchLanding(Rope r = null)
+        private bool CheckFallAndCatchLanding(Rope rope = null)
         {
             // If the player is falling then...
-            if (PlayerCharacter.IsFalling)
+            if (Profile.LocalUser.IsFalling)
             {
                 // Check the falling flag.
                 if (!_falling)
-                    _fallHeight = PlayerCharacter.HeightAboveGround;
+                    _fallHeight = Profile.LocalUser.HeightAboveGround;
 
                 // Set the flag regardless. We're just 
                 // using it as a trigger of sorts.
@@ -115,8 +125,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
             }
 
             // Catch our landing at high falls.
-            var didCollide = false;
-            if (!(didCollide = PlayerCharacter.GetConfigFlag(60)) && !(PlayerCharacter.HeightAboveGround < 2f)) return false;
+            bool didCollide;
+            if (!(didCollide = Profile.LocalUser.GetConfigFlag(60)) && !(Profile.LocalUser.HeightAboveGround < 2f)) return false;
 
             // Check the fall height, catch the landing,
             // and reset the fall height.
@@ -125,12 +135,12 @@ namespace SpiderMan.Abilities.SpecialAbilities
             {
                 if (!didCollide)
                 {
-                    var vel = PlayerCharacter.Velocity;
-                    PlayerCharacter.SetCoordsSafely(PlayerCharacter.Position - Vector3.WorldUp * PlayerCharacter.HeightAboveGround);
-                    PlayerCharacter.Velocity = vel;
+                    var vel = Profile.LocalUser.Velocity;
+                    Profile.LocalUser.SetCoordsSafely(Profile.LocalUser.Position - Vector3.WorldUp * Profile.LocalUser.HeightAboveGround);
+                    Profile.LocalUser.Velocity = vel;
                 }
                 // Try to catch our landing.
-                r?.Delete();
+                rope?.Delete();
                 CatchLanding();
                 CaughtLanding?.Invoke(this, new EventArgs(), _fallHeight);
                 _fallHeight = 0f;
@@ -139,7 +149,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             {
                 // If we should splat then let us, so that
                 // the falling anim isn't constantly playing.
-                PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
+                Profile.LocalUser.Task.ClearAnimation("move_fall", "fall_high");
             }
 
             // This will return true since we landed.
@@ -167,63 +177,74 @@ namespace SpiderMan.Abilities.SpecialAbilities
             if (Game.IsDisabledControlJustPressed(2, Control.Reload))
             {
                 // Get the direction from the player to the point.
-                var directionToPoint = targetPoint - PlayerCharacter.Position;
+                var directionToPoint = targetPoint - Profile.LocalUser.Position;
 
                 // If we're on the ground then move us upwards.
-                if (PlayerCharacter.GetConfigFlag(60))
+                if (Profile.LocalUser.GetConfigFlag(60))
                     directionToPoint += Vector3.WorldUp * 0.5f;
                 directionToPoint.Normalize(); // Normalize the direcion vector.
 
                 // Set the player's heading accordingly.
-                PlayerCharacter.Heading = directionToPoint.ToHeading();
+                Profile.LocalUser.Heading = directionToPoint.ToHeading();
 
-                var speed = Vector3.Distance(PlayerCharacter.Position, targetPoint);
-                speed = Maths.Clamp(speed, 65f, 150f);
+                var speed = Vector3.Distance(Profile.LocalUser.Position, targetPoint);
+                speed = Maths.Clamp(speed, 65f, 150f) * Profile.WebZipForceMultiplier;
 
                 // Play the falling animation.
                 // Reset the player's velocity if anything is left over.
-                PlayerCharacter.Task.ClearAllImmediately();
-                PlayerCharacter.Velocity = Vector3.Zero;
-                PlayerCharacter.Task.Jump();
+                Profile.LocalUser.Task.ClearAllImmediately();
+                Profile.LocalUser.Velocity = Vector3.Zero;
+                Profile.LocalUser.Task.Jump();
 
                 // Initialize our rope variable.
                 Rope rope = null;
 
-                var wasOnGround = PlayerCharacter.GetConfigFlag(60);
+                var isOnGround = Profile.LocalUser.GetConfigFlag(60);
+                var timer = 0.025f;
 
-                // Wait until the player is no longer on the ground.
-                GameWaiter.DoWhile(100, () => PlayerCharacter.GetConfigFlag(60),
-                    () => { PlayerCharacter.Velocity += Vector3.WorldUp * 500f * Time.UnscaledDeltaTime; });
-
-                if (wasOnGround)
-                    GameWaiter.Wait(150);
-
-                // Now we need to set player's velocity.
-                PlayerCharacter.Velocity = directionToPoint * speed;
-
-                // Make sure we've left the ground.
-                if (!PlayerCharacter.GetConfigFlag(60))
+                if (isOnGround)
                 {
-                    // Play the web grapple animation.
-                    PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
-                        8.0f, -4.0f, 250, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
-
-                    // Reverse the anim.
-                    GameWaiter.WaitUntil(500,
-                        () => PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"));
-                    PlayerCharacter.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
+                    // Wait until the player is no longer on the ground.
+                    while (timer > 0f)
+                    {
+                        Profile.LocalUser.Velocity += Vector3.WorldUp * 500f * Time.DeltaTime;
+                        timer -= Time.DeltaTime;
+                        Script.Yield();
+                    }
+                    GameWaiter.Wait(150);
                 }
 
-                GameWaiter.DoWhile(700, () =>
+                // Now we need to set player's velocity.
+                Profile.LocalUser.Velocity = directionToPoint * speed;
+
+                // Make sure we've left the ground.
+                if (!Profile.LocalUser.GetConfigFlag(60))
                 {
-                    if (PlayerCharacter.HasCollidedWithAnything)
-                        return false;
+                    // Play the web grapple animation.
+                    Profile.LocalUser.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
+                        8.0f, -4.0f, 250, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
+
+                    timer = 0.5f;
+                    while (!Profile.LocalUser.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand")
+                        && timer > 0f)
+                    {
+                        timer -= Time.DeltaTime;
+                        Script.Yield();
+                    }
+                    Profile.LocalUser.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
+                }
+
+                timer = 0.7f;
+                while (timer > 0f)
+                {
+                    if (Profile.LocalUser.HasCollidedWithAnything)
+                        break;
 
                     if (CheckFallAndCatchLanding(rope))
-                        return false;
+                        break;
 
                     // Cache the players right hand coord.
-                    var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
+                    var rHand = Profile.LocalUser.GetBoneCoord(Bone.SKEL_R_Hand);
 
                     // Create the rope.
                     if (rope == null)
@@ -235,14 +256,14 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     }
 
                     // Check if the player is playing the grapple animation.
-                    if (PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
+                    if (Profile.LocalUser.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
                     {
                         // Pin the rope vertices.
                         rope.PinVertex(0, rHand);
                         rope.PinVertex(rope.VertexCount - 1, targetPoint);
 
                         // Reverse the grapple animation.
-                        PlayerCharacter.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
+                        Profile.LocalUser.SetAnimationSpeed("weapons@projectile@", "throw_m_fb_stand", -1f);
                     }
                     else
                     {
@@ -250,15 +271,16 @@ namespace SpiderMan.Abilities.SpecialAbilities
                         rope.UnpinVertex(0);
                         rope.PinVertex(rope.VertexCount - 1, targetPoint);
                     }
-                    return true;
-                }, null);
+                    timer -= Time.DeltaTime;
+                    Script.Yield();
+                }
 
                 // Clear the throwing anim.
-                PlayerCharacter.Task.ClearAnimation("weapons@projectile@", "throw_m_fb_stand");
+                Profile.LocalUser.Task.ClearAnimation("weapons@projectile@", "throw_m_fb_stand");
 
                 // Destroy the rope here.
                 if (Rope.Exists(rope))
-                    rope.Delete();
+                    rope?.Delete();
             }
         }
 
@@ -270,66 +292,49 @@ namespace SpiderMan.Abilities.SpecialAbilities
         private void CatchLanding()
         {
             // Clear the player's tasks.
-            PlayerCharacter.ClearTasksImmediately();
+            Profile.LocalUser.ClearTasksImmediately();
 
             // Check our movement vector.
-            var moveVector = GetMoveVector();
+            var moveVector = Profile.GetInputDirection();
 
             // Play the movement dependant animations.
             if (moveVector.Length() > 0)
             {
                 // Add a little bit of dust.
-                GTAGraphics.StartParticle("core", "ent_dst_dust", PlayerCharacter.Position - Vector3.WorldUp,
+                GTAGraphics.StartParticle("core", "ent_dst_dust", Profile.LocalUser.Position - Vector3.WorldUp,
                     Vector3.Zero, 2f);
 
                 // Play the rolling animation.
-                PlayerCharacter.Task.PlayAnimation("move_fall", "land_roll",
+                Profile.LocalUser.Task.PlayAnimation("move_fall", "land_roll",
                     8.0f, -4.0f, 750, AnimationFlags.AllowRotation, 0.0f);
             }
             else
             {
                 // Add a little bit of dust.
-                GTAGraphics.StartParticle("core", "ent_dst_dust", PlayerCharacter.Position - Vector3.WorldUp,
+                GTAGraphics.StartParticle("core", "ent_dst_dust", Profile.LocalUser.Position - Vector3.WorldUp,
                     Vector3.Zero, 2f);
 
                 // Play our super hero landing animation.
-                PlayerCharacter.Velocity = Vector3.Zero;
-                PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro", 6.0f, -4.0f, 450,
+                Profile.LocalUser.Velocity = Vector3.Zero;
+                Profile.LocalUser.Task.PlayAnimation("move_crouch_proto", "idle_intro", 6.0f, -4.0f, 450,
                     AnimationFlags.Loop, 0.0f);
-                PlayerCharacter.Task.PlayAnimation("skydive@base", "ragdoll_to_free_idle", 6.0f, -4.0f, 450,
+                Profile.LocalUser.Task.PlayAnimation("skydive@base", "ragdoll_to_free_idle", 6.0f, -4.0f, 450,
                     AnimationFlags.AllowRotation |
                     AnimationFlags.UpperBodyOnly,
                     0.0f);
-                GameWaiter.WaitUntil(500,
-                    () => PlayerCharacter.IsPlayingAnimation("skydive@base", "ragdoll_to_free_idle"));
-                PlayerCharacter.SetAnimationSpeed("skydive@base", "ragdoll_to_free_idle", 0f);
+                var timer = 0.5f;
+                while (!Profile.LocalUser.IsPlayingAnimation("skydive@base", "ragdoll_to_free_idle") &&
+                    timer > 0f)
+                {
+                    timer -= Time.DeltaTime;
+                    Script.Yield();
+                }
+                Profile.LocalUser.SetAnimationSpeed("skydive@base", "ragdoll_to_free_idle", 0f);
             }
 
             // Clear the falling animation.
-            PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
+            Profile.LocalUser.Task.ClearAnimation("move_fall", "fall_high");
             GameWaiter.Wait(500);
-        }
-
-        private static Vector3 GetMoveVector()
-        {
-            var moveSideways = Game.GetControlNormal(2, Control.MoveLeftRight);
-            var moveVertical = Game.GetControlNormal(2, Control.MoveUpDown);
-            var moveVector = new Vector3(moveSideways, moveVertical, 0);
-            return moveVector;
-        }
-
-        /// <summary>
-        ///     This will grapple a ped towards the player, and make them ragdoll.
-        ///     If the ped is armed, it will automatically disarm them, but they won't ragdoll.
-        /// </summary>
-        /// <param name="ped"></param>
-        private void PedGrapple(Ped ped)
-        {
-            // TODO: Grapple a ped towards us.
-            // Make sure that the ped didn't return null for some reason.
-            if (ped == null)
-                // ReSharper disable once RedundantJumpStatement
-                return;
         }
 
         /// <summary>
@@ -354,14 +359,14 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 /////////////////////////////////////////////////////////////
 
                 // Clear the player's tasks completely, first.
-                PlayerCharacter.Task.ClearSecondary();
-                PlayerCharacter.ClearTasksImmediately();
+                Profile.LocalUser.Task.ClearSecondary();
+                Profile.LocalUser.ClearTasksImmediately();
 
                 // A flag that let's the loop know if we've done a long distance jump.
                 var twoHandedAnim = false;
 
                 // Now we need to player our cool animations.
-                if (Vector2.Distance(new Vector2(PlayerCharacter.Position.X, PlayerCharacter.Position.Y),
+                if (Vector2.Distance(new Vector2(Profile.LocalUser.Position.X, Profile.LocalUser.Position.Y),
                         new Vector2(vehicle.Position.X, vehicle.Position.Y)) > 15f)
                 {
                     // Add a little RNG for the animations.
@@ -373,21 +378,21 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     // The first anim (back paddle).
                     if (animType == 1)
                     {
-                        PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
+                        Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
                             4.0f, -2.0f, 1150, AnimationFlags.StayInEndFrame, 0.0f);
 
                         // Our two handed grapple anim.
-                        PlayerCharacter.Task.PlayAnimation("amb@world_vehicle_police_carbase", "base",
+                        Profile.LocalUser.Task.PlayAnimation("amb@world_vehicle_police_carbase", "base",
                             8.0f, -8.0f, 150, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
                         twoHandedAnim = true;
                     }
                     // Now the second anim.
                     else
                     {
-                        PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front",
+                        Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front",
                             4.0f, -2.0f, 1150, AnimationFlags.StayInEndFrame, 0.1f);
 
-                        PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
+                        Profile.LocalUser.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
                             8.0f, -4.0f, 100, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
                     }
                 }
@@ -395,21 +400,21 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 else
                 {
                     // Play the short distance jump animation combo.
-                    PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
+                    Profile.LocalUser.Task.PlayAnimation("move_fall", "fall_med",
                         4.0f, -2.0f, 1150, AnimationFlags.StayInEndFrame, 0.0f);
-                    PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
+                    Profile.LocalUser.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand",
                         8.0f, -4.0f, 250, AnimationFlags.UpperBodyOnly | AnimationFlags.AllowRotation, 0.0f);
                 }
 
                 // Get the target direction.
-                var targetDirection = vehicle.Position - PlayerCharacter.Position;
+                var targetDirection = vehicle.Position - Profile.LocalUser.Position;
                 targetDirection.Normalize();
 
                 // Setup our loop timer.
                 var elapsedTime = 0f;
 
                 // Create the helper obj.
-                _helperObj = World.CreateVehicle("bmx", PlayerCharacter.Position +
+                _helperObj = World.CreateVehicle("bmx", Profile.LocalUser.Position +
                                                         new Vector3(0, 100, 0));
                 _helperObj.HasCollision = false;
                 _helperObj.IsVisible = false;
@@ -418,21 +423,21 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                 // The initial direction to the target used as an offset
                 // for our heading.
-                var initialTargetDirection = vehicle.Position - PlayerCharacter.Position;
+                var initialTargetDirection = vehicle.Position - Profile.LocalUser.Position;
                 initialTargetDirection.Normalize();
 
                 // The collection of rops we will use as webs.
-                List<Rope> ropes = new List<Rope>();
+                var ropes = new List<Rope>();
 
                 // The delay that we use to delete the ropes.
                 var ropeDeleteDelay = 0.75f;
 
                 // Let's do our loop.
-                GameWaiter.DoWhile(() => GrappleToVehicle(vehicle, twoHandedAnim,
-                    elapsedTime,
-                    initialTargetDirection,
-                    ropes,
-                    ref ropeDeleteDelay), null);
+                while (GrappleToVehicle(vehicle, twoHandedAnim,
+                    elapsedTime, initialTargetDirection, ropes, ref ropeDeleteDelay))
+                {
+                    Script.Yield();
+                }
 
                 // Despawn the ropes if for some reason they 
                 // haven't.
@@ -442,10 +447,20 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 _helperObj?.Delete();
 
                 // Now we need to clear the player's tasks.
-                PlayerCharacter.Task.ClearAll();
+                Profile.LocalUser.Task.ClearAll();
             }
         }
 
+        /// <summary>
+        /// Grapple the player towards the specified vehicle.
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="twoHandedAnim"></param>
+        /// <param name="elapsedTime"></param>
+        /// <param name="initialTargetDirection"></param>
+        /// <param name="ropes"></param>
+        /// <param name="ropeDeleteDelay"></param>
+        /// <returns></returns>
         private bool GrappleToVehicle(Vehicle vehicle, bool twoHandedAnim, float elapsedTime,
             Vector3 initialTargetDirection, List<Rope> ropes, ref float ropeDeleteDelay)
         {
@@ -455,11 +470,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 : UpdateRopes2(vehicle, ropes, ropeDeleteDelay);
 
             // Get the target direction direction.
-            var targetDirection = vehicle.Position - PlayerCharacter.Position;
+            var targetDirection = vehicle.Position - Profile.LocalUser.Position;
             targetDirection.Normalize();
 
             // Get the distance while we're at it.
-            var targetDistance = Vector3.Distance(PlayerCharacter.Position, vehicle.Position);
+            var targetDistance = Vector3.Distance(Profile.LocalUser.Position, vehicle.Position);
 
             // The angle of the arc.
             const float angle = 37f;
@@ -483,23 +498,23 @@ namespace SpiderMan.Abilities.SpecialAbilities
             var acceleration = GetAcceleration(elapsedTime, angle, degToRad, gravity, targetVelocityMag);
 
             // Set the players velocity and heading.
-            PlayerCharacter.Heading = (initialTargetDirection * 5).ToHeading();
-            PlayerCharacter.Velocity = acceleration * 25f + vehicle.Velocity;
+            Profile.LocalUser.Heading = (initialTargetDirection * 5).ToHeading();
+            Profile.LocalUser.Velocity = acceleration * 25f + vehicle.Velocity;
 
             // reverse the grapple animation.
-            if (PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
-                PlayerCharacter.SetAnimationSpeed("weapons@projectile@",
+            if (Profile.LocalUser.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
+                Profile.LocalUser.SetAnimationSpeed("weapons@projectile@",
                     "throw_m_fb_stand", -1.0f); // set it to -1x the speed.
 
             // Check if the player has collided with anything,
             // and if so, then break the loop.
-            if (PlayerCharacter.HasCollidedWithAnything)
+            if (Profile.LocalUser.HasCollidedWithAnything)
             {
                 // Stop the grapple.
                 StopGrapple();
 
                 // If the player is touching the vehicle...
-                if (!PlayerCharacter.IsTouching(vehicle)) return false;
+                if (!Profile.LocalUser.IsTouching(vehicle)) return false;
 
                 // Get the collision normal and check to see
                 // if we're on a flat surface.
@@ -508,9 +523,9 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                 // Now we're going to artificially attach the player
                 // to the roof, with a nice little animation.
-                PlayerCharacter.Velocity = vehicle.Velocity;
-                vehicle.SetDamage(PlayerCharacter.Position - vehicle.Position, 3000f, 200f);
-                PlayerCharacter.Task.PlayAnimation("move_fall", "clamber_land_stand",
+                Profile.LocalUser.Velocity = vehicle.Velocity;
+                vehicle.SetDamage(Profile.LocalUser.Position - vehicle.Position, 3000f, 200f);
+                Profile.LocalUser.Task.PlayAnimation("move_fall", "clamber_land_stand",
                     8.0f, -4.0f, 750, AnimationFlags.None, 0.0f);
                 GameplayCamera.Shake(CameraShake.Jolt, 0.1f);
                 OverrideFallHeight(0f);
@@ -518,25 +533,32 @@ namespace SpiderMan.Abilities.SpecialAbilities
             }
 
             // Make sure the player doesn't think he's falling while we update.
-            PlayerCharacter.SetConfigFlag(60, true);
+            Profile.LocalUser.SetConfigFlag(60, true);
             return true;
         }
 
-        private float UpdateRopes1(Vehicle vehicle, List<Rope> ropes, float ropeDeleteDelay)
+        /// <summary>
+        /// Updates a 1 handed rope.
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="ropes"></param>
+        /// <param name="ropeDeleteDelay"></param>
+        /// <returns></returns>
+        private float UpdateRopes1(ISpatial vehicle, IList<Rope> ropes, float ropeDeleteDelay)
         {
             // Stop the upper body animation after some time, and move to
             // a falling animation.
-            if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_back_to_idle"))
-                if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.15f)
-                    PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
+            if (Profile.LocalUser.IsPlayingAnimation("swimming@swim", "recover_back_to_idle"))
+                if (Profile.LocalUser.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.1f)
+                    Profile.LocalUser.Task.PlayAnimation("move_fall", "fall_med",
                         2.0f, -4.0f, -1, AnimationFlags.StayInEndFrame, 0.0f);
 
             // Get the hand coordinates.
-            var lHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_L_Hand);
-            var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
+            var lHand = Profile.LocalUser.GetBoneCoord(Bone.SKEL_L_Hand);
+            var rHand = Profile.LocalUser.GetBoneCoord(Bone.SKEL_R_Hand);
 
             // Check if this player is playing the web pull animation.
-            if (!PlayerCharacter.IsPlayingAnimation("amb@world_vehicle_police_carbase", "base"))
+            if (!Profile.LocalUser.IsPlayingAnimation("amb@world_vehicle_police_carbase", "base"))
             {
                 // If the ropes are ready to be deleted...
                 if (ropeDeleteDelay <= 0)
@@ -597,20 +619,27 @@ namespace SpiderMan.Abilities.SpecialAbilities
             return ropeDeleteDelay;
         }
 
-        private float UpdateRopes2(Vehicle vehicle, List<Rope> ropes, float ropeDeleteDelay)
+        /// <summary>
+        /// Update's a 2 handed rope.
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="ropes"></param>
+        /// <param name="ropeDeleteDelay"></param>
+        /// <returns></returns>
+        private float UpdateRopes2(ISpatial vehicle, IList<Rope> ropes, float ropeDeleteDelay)
         {
             // Let's update the swimming anim for this if any.
-            if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_flip_back_to_front"))
-                if (PlayerCharacter.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.2f)
-                    PlayerCharacter.Task.PlayAnimation("move_fall", "fall_med",
+            if (Profile.LocalUser.IsPlayingAnimation("swimming@swim", "recover_flip_back_to_front"))
+                if (Profile.LocalUser.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.175f)
+                    Profile.LocalUser.Task.PlayAnimation("move_fall", "fall_med",
                         2.0f, -4.0f, -1, AnimationFlags.StayInEndFrame, 0.0f);
 
             // Get the right hand coord.
-            var rHand = PlayerCharacter.GetBoneCoord(Bone.SKEL_R_Hand);
+            var rHand = Profile.LocalUser.GetBoneCoord(Bone.SKEL_R_Hand);
 
             // Check if the player is playing the web pull anim on
             // the upper body.
-            if (!PlayerCharacter.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
+            if (!Profile.LocalUser.IsPlayingAnimation("weapons@projectile@", "throw_m_fb_stand"))
             {
                 if (ropeDeleteDelay <= 0)
                 {
@@ -656,6 +685,15 @@ namespace SpiderMan.Abilities.SpecialAbilities
             return ropeDeleteDelay;
         }
 
+        /// <summary>
+        /// Get the acceleration arc needed to reach the target vehicle.
+        /// </summary>
+        /// <param name="elapsedTime"></param>
+        /// <param name="angle"></param>
+        /// <param name="degToRad"></param>
+        /// <param name="gravity"></param>
+        /// <param name="targetVelocityMag"></param>
+        /// <returns></returns>
         private Vector3 GetAcceleration(float elapsedTime, float angle, float degToRad, float gravity, float targetVelocityMag)
         {
             var vx = (float)Math.Sqrt(targetVelocityMag) * (float)Math.Cos(angle * degToRad);
@@ -677,15 +715,15 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// </summary>
         private void StopGrapple()
         {
-            PlayerCharacter.Task.ClearAll();
-            PlayerCharacter.SetConfigFlag(60, false); // Not grounded.
+            Profile.LocalUser.Task.ClearAll();
+            Profile.LocalUser.SetConfigFlag(60, false); // Not grounded.
         }
 
         /// <summary>
         ///     Despawns the specified ropes.
         /// </summary>
         /// <param name="ropes">The ropes to despawn.</param>
-        private static void DespawnRopes(List<Rope> ropes)
+        private static void DespawnRopes(IEnumerable<Rope> ropes)
         {
             foreach (var rope in ropes)
                 if (rope != null && rope.Exists())
@@ -701,10 +739,10 @@ namespace SpiderMan.Abilities.SpecialAbilities
             _helperObj?.Delete();
 
             // Re-enable player pain audio.
-            PlayerCharacter.DisablePainAudio(false);
+            Profile.LocalUser.DisablePainAudio(false);
 
             // Clear our anim once we stop
-            PlayerCharacter.Task.ClearAnimation("move_fall", "fall_high");
+            Profile.LocalUser.Task.ClearAnimation("move_fall", "fall_high");
         }
     }
 }

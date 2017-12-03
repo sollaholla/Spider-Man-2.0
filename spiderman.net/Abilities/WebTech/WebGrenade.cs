@@ -1,12 +1,17 @@
 ﻿using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Modding;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
 namespace SpiderMan.Abilities.WebTech
 {
-    [WebTech("Projectiles", IsDefault = true)]
+    //[WebTech("Projectiles", IsDefault = true)]
     public class WebGrenade : Tech
     {
+        public WebGrenade(SpiderManProfile profile) : base(profile)
+        { }
+
         public override string Name => "Web Grenade";
 
         public override string Description =>
@@ -19,11 +24,9 @@ namespace SpiderMan.Abilities.WebTech
         }
 
         public override void Deactivate()
-        {
-        }
+        { }
 
         public override void Process()
-        {
-        }
+        { }
     }
 }

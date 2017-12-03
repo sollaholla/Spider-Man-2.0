@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using GTA;
 using GTA.Native;
 using SpiderMan.Abilities.SpecialAbilities;
+using SpiderMan.Abilities.SpecialAbilities.PlayerOnly;
 using SpiderMan.Library.Memory;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Modding.Stillhere;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
 /// <summary>
 /// Credits: 
@@ -18,7 +20,7 @@ namespace SpiderMan
     /// <summary>
     ///     The main script that controls all our abilities.
     /// </summary>
-    public class CoreScript : Script
+    public class PlayerController : Script
     {
         /// <summary>
         ///     This holds a list of our special abilities.
@@ -51,14 +53,24 @@ namespace SpiderMan
         private readonly MenuPool _menuPool;
 
         /// <summary>
+        /// The profile that controls the player.
+        /// </summary>
+        private static SpiderManProfile _spiderManProfile;
+
+        /// <summary>
         ///     The script communicator. (used by the script communicator menu)
         /// </summary>
         private readonly ScriptCommunicator _scriptComms = new ScriptCommunicator("SpiderMan");
 
         /// <summary>
+        /// Set to true for the profile to be reset.
+        /// </summary>
+        private bool _setProfileNull = false;
+
+        /// <summary>
         ///     The main constructor.
         /// </summary>
-        public CoreScript()
+        public PlayerController()
         {
             Tick += OnTick;
             Aborted += OnAborted;
@@ -69,17 +81,16 @@ namespace SpiderMan
             _menuPool = new MenuPool();
             _menuPool.AddMenu(_mainMenu);
 
-            var enableItem = new UIMenuItem("Activate Powers") { Tag = "m_Enabled", Description = "Enable the player's powers." };
-            var disableItem = new UIMenuItem("Disable Powers") { Tag = "m_Disabled", Description = "Disable the player's powers." };
-            _mainMenu.AddMenuItem(enableItem);
-            _mainMenu.AddMenuItem(disableItem);
+            _spiderManProfile = new SpiderManProfile(".\\scripts\\Spider-Man Files\\SpideyProfile.ini");
+            _spiderManProfile.Init();
+            _spiderManProfile.AddToMenu(_mainMenu, _menuPool);
 
-            _mainMenu.OnItemSelect += (a0, item, a2) =>
+            var deactivateButton = new UIMenuItem("Deactivate Powers");
+            _mainMenu.AddMenuItem(deactivateButton);
+            _mainMenu.OnItemSelect += (sender, item, index) =>
             {
-                if (item == enableItem)
-                    ModEnabled = true;
-                else if (item == disableItem)
-                    ModEnabled = false;
+                if (item == deactivateButton && _spiderManProfile != null)
+                    _setProfileNull = true;
             };
         }
 
@@ -91,7 +102,7 @@ namespace SpiderMan
         /// <summary>
         /// True if this mod is enabled.
         /// </summary>
-        public static bool ModEnabled { get; private set; }
+        public static bool ModEnabled => Entity.Exists(_spiderManProfile?.LocalUser);
 
         /// <summary>
         ///     Called when the mod is reloaded / crashed.
@@ -122,11 +133,13 @@ namespace SpiderMan
         {
             UpdateMenus();
 
-            if (!ModEnabled)
+            if (!ModEnabled || _setProfileNull)
             {
                 if (!_initAbilities) return;
                 StopAllAbilities();
                 _initAbilities = false;
+                _spiderManProfile.LocalUser = null;
+                _setProfileNull = false;
                 return;
             }
 
@@ -139,15 +152,16 @@ namespace SpiderMan
                 _initAbilities = false;
             }
 
-            Function.Call((Hash)0xC388A0F065F5BC34, Game.Player.Handle, 1f);
-            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle, 1000f);
-
-            // Stop the player from using/having a parachute.
-            StopPlayerFromUsingParachute();
-
             // Initialize our abilities.
             Init();
             UpdateAbilities();
+
+            Function.Call((Hash)0xC388A0F065F5BC34, Game.Player.Handle, 1f);
+            Function.Call(Hash.SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER, Game.Player.Handle,
+                _spiderManProfile.HealthRechargeMultiplier);
+
+            // Stop the player from using/having a parachute.
+            StopPlayerFromUsingParachute();
         }
 
         private void UpdateMenus()
@@ -172,6 +186,8 @@ namespace SpiderMan
 
         private void UpdateAbilities()
         {
+            // Here's where we're going to set the player's super jump.
+            Game.Player.SetSuperJumpThisFrame();
 
             // If the gameplay camera is not rendering (menyoo spooner for example),
             // then just return until otherwise.
@@ -186,8 +202,8 @@ namespace SpiderMan
         private static void SetPlayerCharacter()
         {
             PlayerCharacter = Game.Player.Character;
-            PlayerCharacter.MaxHealth = 3000;
-            PlayerCharacter.Health = 3000;
+            PlayerCharacter.MaxHealth = _spiderManProfile.MaxHealth;
+            PlayerCharacter.Health = PlayerCharacter.MaxHealth;
         }
 
         private static void StopPlayerFromUsingParachute()
@@ -212,10 +228,10 @@ namespace SpiderMan
             if (_initAbilities) return;
             _abilities = new List<SpecialAbility>
             {
-                new Agility(),
-                new Melee(),
-                new StarkTech(),
-                new WallCrawl()
+                new Agility(_spiderManProfile),
+                new Melee(_spiderManProfile),
+                new StarkTech(_spiderManProfile),
+                new WallCrawl(_spiderManProfile)
             };
             _initAbilities = true;
         }

@@ -20,7 +20,16 @@ namespace SpiderMan.ScriptThreads
             // sure we're looping through a copy.
             var copy = UpdateMethods.ToList();
             foreach (var m in copy)
-                m.Invoke();
+            {
+                try
+                {
+                    m.Invoke();
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
         }
 
         /// <summary>

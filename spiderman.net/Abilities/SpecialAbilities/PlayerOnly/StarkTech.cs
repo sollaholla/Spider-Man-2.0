@@ -1,18 +1,19 @@
-﻿using System;
+﻿using GTA;
+using GTA.Math;
+using GTA.Native;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
-using GTA;
-using GTA.Math;
-using GTA.Native;
 using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Modding.Stillhere;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
-namespace SpiderMan.Abilities.SpecialAbilities
+namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 {
     public class StarkTech : SpecialAbility
     {
@@ -32,7 +33,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// <summary>
         ///     The main constructor.
         /// </summary>
-        public StarkTech()
+        public StarkTech(SpiderManProfile profile) : 
+            base(profile)
         {
             // Create's the weapon wheel.
             CreateWheel();
@@ -45,9 +47,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
         {
             // Generate slots for this assembly.
             _slots = GetCategorySlotsFromAssembly(Assembly.GetExecutingAssembly());
-            for (var i = 0; i < _slots.Count; i++)
+            foreach (var slot in _slots)
             {
-                var slot = _slots[i];
                 _wheel.AddCategory(GenerateCategory(slot.ID, slot.CategoryName, slot.Tech));
             }
 
@@ -67,37 +68,33 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// </summary>
         /// <param name="assembly"></param>
         /// <returns></returns>
-        private static List<CategorySlot> GetCategorySlotsFromAssembly(Assembly assembly)
+        private List<CategorySlot> GetCategorySlotsFromAssembly(Assembly assembly)
         {
             var retVal = new List<CategorySlot>();
             var types = assembly.GetTypes();
             var idCount = 0;
 
-            for (var i = 0; i < types.Length; i++)
+            foreach (var type in types)
             {
-                var type = types[i];
-                if (type.BaseType == typeof(Tech))
-                    if (type.GetCustomAttribute(typeof(WebTechAttribute)) is WebTechAttribute att)
-                    {
-                        var tech = (Tech) Activator.CreateInstance(type);
-                        var cat = att.CategoryName;
-                        var find = retVal.Find(x => x.CategoryName == cat);
+                if (type.BaseType != typeof(Tech)) continue;
+                if (!(type.GetCustomAttribute(typeof(WebTechAttribute)) is WebTechAttribute att)) continue;
+                var tech = (Tech) Activator.CreateInstance(type, Profile);
+                var cat = att.CategoryName;
+                var find = retVal.Find(x => x.CategoryName == cat);
 
-                        if (find == null)
-                        {
-                            var add = new CategorySlot(cat, idCount, new List<Tech> {tech}, tech);
-                            retVal.Add(add);
-                            idCount++;
-                        }
-                        else
-                        {
-                            find.Tech.Add(tech);
-                            find.Tech = find.Tech.OrderByDescending(x => GetWebTechAttribute(x).IsDefault).ToList();
-                            if (find.m_ActivateTech != null)
-                                find.m_ActivateTech.Deactivate();
-                            find.m_ActivateTech = find.Tech[0];
-                        }
-                    }
+                if (find == null)
+                {
+                    var add = new CategorySlot(cat, idCount, new List<Tech> {tech}, tech);
+                    retVal.Add(add);
+                    idCount++;
+                }
+                else
+                {
+                    find.Tech.Add(tech);
+                    find.Tech = find.Tech.OrderByDescending(x => GetWebTechAttribute(x).IsDefault).ToList();
+                    find.m_ActivateTech?.Deactivate();
+                    find.m_ActivateTech = find.Tech[0];
+                }
             }
 
             return retVal;
@@ -126,11 +123,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
             var c = new WheelCategory(categoryName) {ID = catID};
 
             // Loop through each tech object.
-            for (var i = 0; i < tech.Count; i++)
+            foreach (var t in tech)
             {
-                // Get the current web tech.
-                var t = tech[i];
-
                 // Add the wheel category item.
                 var categoryItem = new WheelCategoryItem(t.Name, t.Description)
                 {
@@ -177,13 +171,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
             else
             {
                 // Our tech needs to be switched and activated.
-                if (tech != selectedTech)
-                {
-                    StopTechAbilties(tech);
-                    tech.Deactivate();
-                    tech = selectedTech;
-                    selectedTech.Activate();
-                }
+                if (tech == selectedTech) return;
+                StopTechAbilties(tech);
+                tech.Deactivate();
+                tech = selectedTech;
+                selectedTech.Activate();
             }
         }
 
@@ -228,8 +220,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
         private static void StopTechAbilties(Tech tech)
         {
-            if (tech == null) return;
-            if (tech.Abilities == null) return;
+            if (tech?.Abilities == null) return;
             foreach (var a in tech.Abilities)
                 a?.Stop();
         }
@@ -241,7 +232,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
         {
             // If the player is dead, then hide the weapon
             // wheel.
-            if (PlayerCharacter.IsDead)
+            if (Profile.LocalUser.IsDead)
                 _wheel.Visible = false;
 
             // Check if we've pressed the weapon selection control.
