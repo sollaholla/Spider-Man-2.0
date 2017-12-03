@@ -8,6 +8,8 @@ using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 using SpiderMan.ScriptThreads;
 
 namespace SpiderMan.Abilities.WebTech
@@ -25,7 +27,8 @@ namespace SpiderMan.Abilities.WebTech
         /// </summary>
         private readonly List<ParticleLooped> _particles = new List<ParticleLooped>();
 
-        public InstantKill()
+        public InstantKill(SpiderManProfile profile) :
+            base(profile)
         {
             Streaming.RequestAnimationDictionary("melee@unarmed@base");
         }

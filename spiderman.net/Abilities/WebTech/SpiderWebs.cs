@@ -1,8 +1,11 @@
 ﻿using System.Collections.Generic;
 using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.SpecialAbilities;
+using SpiderMan.Abilities.SpecialAbilities.PlayerOnly;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Modding;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
 namespace SpiderMan.Abilities.WebTech
 {
@@ -13,13 +16,14 @@ namespace SpiderMan.Abilities.WebTech
     [WebTech("Web Mode", IsDefault = true)]
     public class SpiderWebs : Tech
     {
-        public SpiderWebs()
+        public SpiderWebs(SpiderManProfile profile) : 
+            base(profile)
         {
             Abilities = new List<SpecialAbility>
             {
-                new WebSwing(),
-                new WebZip(),
-                new WebAttachments()
+                new WebSwing(profile),
+                new WebZip(profile),
+                new WebAttachments(profile)
             };
         }
 

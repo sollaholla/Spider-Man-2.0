@@ -3,13 +3,14 @@ using GTA.Math;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem.SpiderManScript;
 using SpiderMan.ScriptThreads;
 
-namespace SpiderMan.Abilities.SpecialAbilities
+namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 {
     public class WallCrawl : SpecialAbility
     {
-        public WallCrawl()
+        public WallCrawl(SpiderManProfile profile) : base(profile)
         {
             // Request our thingys.
             Streaming.RequestAnimationDictionary("swimming@swim");
@@ -28,7 +29,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             if (Game.IsDisabledControlPressed(2, Control.Context))
             {
                 // Get the camera raycast.
-                var ray = Utilities.GetPlayerRay(2.5f, ShapeTestFlags.IntersectMap, PlayerCharacter);
+                var ray = Utilities.GetPlayerRay(2.5f, ShapeTestFlags.IntersectMap, Profile.LocalUser);
 
                 // Begin the climb.
                 if (ray.Hit && Vector3.Dot(ray.SurfaceNormal, Vector3.WorldUp) < 0.25f)
@@ -48,9 +49,9 @@ namespace SpiderMan.Abilities.SpecialAbilities
             // attachmentObject.Alpha = 0;
 
             // Attach the player to the attachment object.
-            PlayerCharacter.Task.ClearAllImmediately();
-            PlayerCharacter.AttachTo(attachmentObject, 0, new Vector3(0, 0, 1), Vector3.Zero);
-            PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro", 8.0f, -1, AnimationFlags.Loop);
+            Profile.LocalUser.Task.ClearAllImmediately();
+            Profile.LocalUser.AttachTo(attachmentObject, 0, new Vector3(0, 0, 1), Vector3.Zero);
+            Profile.LocalUser.Task.PlayAnimation("move_crouch_proto", "idle_intro", 8.0f, -1, AnimationFlags.Loop);
 
             // Delay for the control.
             GameWaiter.Wait(10);
@@ -108,18 +109,18 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     GameWaiter.Wait(10);
                     if (Game.IsDisabledControlPressed(2, Control.Sprint))
                     {
-                        PlayerCharacter.IsCollisionProof = true;
-                        PlayerCharacter.SetConfigFlag(60, false);
-                        PlayerCharacter.Task.Skydive();
-                        PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
+                        Profile.LocalUser.IsCollisionProof = true;
+                        Profile.LocalUser.SetConfigFlag(60, false);
+                        Profile.LocalUser.Task.Skydive();
+                        Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
                             2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
-                        PlayerCharacter.Velocity = Vector3.WorldUp * 25f;
+                        Profile.LocalUser.Velocity = Vector3.WorldUp * 25f;
                         GameWaiter.Wait(100);
-                        PlayerCharacter.IsCollisionProof = false;
+                        Profile.LocalUser.IsCollisionProof = false;
                     }
                     else
                     {
-                        PlayerCharacter.Task.Climb();
+                        Profile.LocalUser.Task.Climb();
                         WebZip.OverrideFallHeight(0f);
                     }
                     break;
@@ -158,7 +159,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 // Detach the player.
                 cancelClimb = true;
                 JumpOff(attachmentObject, 15);
-                PlayerCharacter.Task.Jump();
+                Profile.LocalUser.Task.Jump();
                 return;
             }
 
@@ -166,11 +167,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
             {
                 cancelClimb = true;
                 JumpOff(attachmentObject, 25);
-                PlayerCharacter.Task.ClearAllImmediately();
-                PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front", 8.0f, -4.0f, 500,
+                Profile.LocalUser.Task.ClearAllImmediately();
+                Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front", 8.0f, -4.0f, 500,
                     AnimationFlags.AllowRotation, 0.0f);
                 Script.Yield();
-                PlayerCharacter.Task.Skydive();
+                Profile.LocalUser.Task.Skydive();
                 return;
             }
 
@@ -185,9 +186,9 @@ namespace SpiderMan.Abilities.SpecialAbilities
         {
             var headingDir = attachmentObject.UpVector.ToHeading();
             DetachPlayer(attachmentObject);
-            PlayerCharacter.Task.ClearAllImmediately();
-            PlayerCharacter.Heading = headingDir;
-            PlayerCharacter.Velocity = PlayerCharacter.ForwardVector * force;
+            Profile.LocalUser.Task.ClearAllImmediately();
+            Profile.LocalUser.Heading = headingDir;
+            Profile.LocalUser.Velocity = Profile.LocalUser.ForwardVector * force;
         }
 
 //        private void RotateCam(Camera cam, Entity pivot, Entity target, ref float vert, ref float hori)
@@ -234,24 +235,24 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     PlayAnim(attachmentObject, "laddersbase", "climb_up", -90, 0.25f);
                 else
                     PlayAnim(attachmentObject, "move_m@brave", "run", 0, 1);
-            else if (PlayerCharacter.IsPlayingAnimation("laddersbase", "climb_up"))
+            else if (Profile.LocalUser.IsPlayingAnimation("laddersbase", "climb_up"))
                 PlayAnim(attachmentObject, "laddersbase", "base_left_hand_up", -90, 0.25f);
-            else if (PlayerCharacter.IsPlayingAnimation("move_m@brave", "run"))
+            else if (Profile.LocalUser.IsPlayingAnimation("move_m@brave", "run"))
                 PlayAnim(attachmentObject, "move_crouch_proto", "idle_intro", 0, 1);
         }
 
         private void PlayAnim(Prop attachmentObject, string animationDict, string animationName, float xAngle,
             float zOffset)
         {
-            if (!PlayerCharacter.IsPlayingAnimation(animationDict, animationName))
+            if (!Profile.LocalUser.IsPlayingAnimation(animationDict, animationName))
             {
                 ReAttach(attachmentObject, xAngle, zOffset);
 
-                PlayerCharacter.Task.PlayAnimation(animationDict, animationName, 8.0f, -1, AnimationFlags.Loop);
+                Profile.LocalUser.Task.PlayAnimation(animationDict, animationName, 8.0f, -1, AnimationFlags.Loop);
 
                 var timer = 0.25f;
 
-                while (timer > 0f && !PlayerCharacter.IsPlayingAnimation(animationDict, animationName))
+                while (timer > 0f && !Profile.LocalUser.IsPlayingAnimation(animationDict, animationName))
                 {
                     timer -= Time.UnscaledDeltaTime;
                     Script.Yield();
@@ -261,8 +262,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
         private void ReAttach(Prop attachmentObject, float xAngle, float zOffset)
         {
-            PlayerCharacter.Detach();
-            PlayerCharacter.AttachToEntity(
+            Profile.LocalUser.Detach();
+            Profile.LocalUser.AttachToEntity(
                 attachmentObject, 0, new Vector3(0, 0, zOffset),
                 new Vector3(xAngle, 0, 0), false, false, true, 0, true);
         }
@@ -336,26 +337,26 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// <param name="attachmentObject"></param>
         private void DetachPlayer(Entity attachmentObject)
         {
-            PlayerCharacter.Detach();
+            Profile.LocalUser.Detach();
             attachmentObject.Delete();
             ClearAnimations();
         }
 
         public override void Stop()
         {
-            PlayerCharacter.Detach();
-            PlayerCharacter.IsVisible = true;
+            Profile.LocalUser.Detach();
+            Profile.LocalUser.IsVisible = true;
             ClearAnimations();
             //Utilities.DestroyAllCameras();
         }
 
         private void ClearAnimations()
         {
-            if (PlayerCharacter.IsPlayingAnimation("laddersbase", "base_left_hand_up"))
-                PlayerCharacter.Task.ClearAnimation("laddersbase", "base_left_hand_up");
+            if (Profile.LocalUser.IsPlayingAnimation("laddersbase", "base_left_hand_up"))
+                Profile.LocalUser.Task.ClearAnimation("laddersbase", "base_left_hand_up");
 
-            if (PlayerCharacter.IsPlayingAnimation("move_crouch_proto", "idle_intro"))
-                PlayerCharacter.Task.ClearAnimation("move_crouch_proto", "idle_intro");
+            if (Profile.LocalUser.IsPlayingAnimation("move_crouch_proto", "idle_intro"))
+                Profile.LocalUser.Task.ClearAnimation("move_crouch_proto", "idle_intro");
         }
     }
 }

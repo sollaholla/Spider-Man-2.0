@@ -7,10 +7,12 @@ using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
-namespace SpiderMan.Abilities.SpecialAbilities
+namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 {
     /// <summary>
     ///     The web attachments ability allows the player to attach
@@ -47,7 +49,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
         /// <summary>
         ///     The main ctor.
         /// </summary>
-        public WebAttachments()
+        public WebAttachments(SpiderManProfile profile) : base(profile)
         {
             Streaming.RequestAnimationDictionary("guard_reactions");
             Streaming.RequestAnimationDictionary("move_crouch_proto");
@@ -130,10 +132,10 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 var isPed = entityType == EntityType.Ped;
                 var isVeh = entityType == EntityType.Vehicle;
 
-                var headingDirection = PlayerCharacter.ForwardVector;
-                var directionToEntity = _ropeAttachedEntity.Position - PlayerCharacter.Position;
+                var headingDirection = Profile.LocalUser.ForwardVector;
+                var directionToEntity = _ropeAttachedEntity.Position - Profile.LocalUser.Position;
                 directionToEntity.Normalize();
-                var distance = Vector3.Distance(PlayerCharacter.Position, _ropeAttachedEntity.Position);
+                var distance = Vector3.Distance(Profile.LocalUser.Position, _ropeAttachedEntity.Position);
                 var reverse = Vector3.Angle(headingDirection, directionToEntity) < 45;
 
                 if (Game.IsDisabledControlJustPressed(2, Control.Attack))
@@ -143,11 +145,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     {
                         headingDirection = -directionToEntity;
                         if (distance < 25 && isVeh) flip = true;
-                        else PlayerCharacter.PlayGrappleAnim(-1f);
+                        else Profile.LocalUser.PlayGrappleAnim(-1f);
                     }
                     else
                     {
-                        PlayerCharacter.PlayGrappleAnim(1f);
+                        Profile.LocalUser.PlayGrappleAnim(1f);
                     }
                     if (isPed)
                     {
@@ -173,8 +175,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
                         driver.SetToRagdoll(500);
                         driver.Velocity += veh.Velocity;
                         veh.BreakDoor(VehicleDoor.FrontLeftDoor);
-                        if (reverse) PlayerCharacter.PlayGrappleAnim(-1f);
-                        else PlayerCharacter.PlayGrappleAnim(1f);
+                        if (reverse) Profile.LocalUser.PlayGrappleAnim(-1f);
+                        else Profile.LocalUser.PlayGrappleAnim(1f);
                         EndAttachment();
                         break;
                     }
@@ -182,9 +184,9 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                 if (Game.IsDisabledControlJustPressed(2, Control.Jump))
                 {
-                    PlayerCharacter.Task.PlayAnimation("move_crouch_proto", "idle_intro", 8.0f, -8.0f, -1,
+                    Profile.LocalUser.Task.PlayAnimation("move_crouch_proto", "idle_intro", 8.0f, -8.0f, -1,
                         AnimationFlags.Loop, 0.0f);
-                    PlayerCharacter.Task.PlayAnimation("amb@code_human_wander_texting@male@base", "static", 8.0f, -8.0f,
+                    Profile.LocalUser.Task.PlayAnimation("amb@code_human_wander_texting@male@base", "static", 8.0f, -8.0f,
                         -1,
                         AnimationFlags.UpperBodyOnly |
                         AnimationFlags.Loop |
@@ -193,18 +195,18 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
                 if (Game.IsDisabledControlPressed(2, Control.Jump))
                 {
-                    var velocityDir = PlayerCharacter.RightVector;
+                    var velocityDir = Profile.LocalUser.RightVector;
                     _ropeAttachedEntity.ApplyForce(velocityDir);
-                    PlayerCharacter.Heading = directionToEntity.ToHeading();
-                    PlayerCharacter.SetIKTarget(IKIndex.LeftArm, PlayerCharacter.Position + directionToEntity, 0, 0);
-                    PlayerCharacter.SetIKTarget(IKIndex.RightArm, PlayerCharacter.Position + directionToEntity, 0, 0);
-                    PlayerCharacter.SetIKTarget(IKIndex.Head, _ropeAttachedEntity.Position + Vector3.WorldUp * 5f, 0,
+                    Profile.LocalUser.Heading = directionToEntity.ToHeading();
+                    Profile.LocalUser.SetIKTarget(IKIndex.LeftArm, Profile.LocalUser.Position + directionToEntity, 0, 0);
+                    Profile.LocalUser.SetIKTarget(IKIndex.RightArm, Profile.LocalUser.Position + directionToEntity, 0, 0);
+                    Profile.LocalUser.SetIKTarget(IKIndex.Head, _ropeAttachedEntity.Position + Vector3.WorldUp * 5f, 0,
                         0);
                 }
 
                 if (Game.IsDisabledControlJustReleased(2, Control.Jump))
                 {
-                    PlayerCharacter.Task.ClearAll();
+                    Profile.LocalUser.Task.ClearAll();
                     EndAttachment();
                     break;
                 }
@@ -213,7 +215,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 {
                     var ray = WorldProbe.StartShapeTestRay(GameplayCamera.Position,
                         GameplayCamera.Position + GameplayCamera.Direction * 100f, ShapeTestFlags.Everything,
-                        PlayerCharacter);
+                        Profile.LocalUser);
                     var res = ray.GetResult();
 
                     if (res.Hit)
@@ -261,7 +263,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
         private void UpdateAttachments()
         {
-            var playerPos = PlayerCharacter.Position;
+            var playerPos = Profile.LocalUser.Position;
             _activeAttachments.ForEach(x =>
             {
                 x.ProcessAttachment(playerPos);
@@ -295,7 +297,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             var rope = Rope.AddRope(entity.Position, length, GTARopeType.ThickRope, length, 0.1f, true, false);
             rope.AttachEntities(entity, Vector3.Zero, _ropeAttachedEntity, Vector3.Zero, length);
             rope.ActivatePhysics();
-            PlayerCharacter.PlayAimAnim(entity);
+            Profile.LocalUser.PlayAimAnim(entity);
             return rope;
         }
 
@@ -321,13 +323,15 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
         private void FrontFlip()
         {
-            PlayerCharacter.Task.ClearAllImmediately();
-            PlayerCharacter.Velocity = Vector3.WorldUp * 15f;
-            PlayerCharacter.SetConfigFlag(60, false);
+            if (!Profile.FlipAfterWebPull)
+                return;
+            Profile.LocalUser.Task.ClearAllImmediately();
+            Profile.LocalUser.Velocity = Vector3.WorldUp * 15f;
+            Profile.LocalUser.SetConfigFlag(60, false);
             GameWaiter.Wait(10);
-            PlayerCharacter.Task.Skydive();
+            Profile.LocalUser.Task.Skydive();
             GameWaiter.Wait(1);
-            PlayerCharacter.Task.PlayAnimation("swimming@swim", "recover_back_to_idle", 2.0f, -2.0f, 1150,
+            Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_back_to_idle", 2.0f, -2.0f, 1150,
                 AnimationFlags.AllowRotation, 0.0f);
             var t = 0.7f;
             while (t > 0)
@@ -344,8 +348,8 @@ namespace SpiderMan.Abilities.SpecialAbilities
             // Delete the web helpers.
             _webShooterRope?.Delete();
             _webShooterHelper?.Delete();
-            PlayerCharacter.Task.ClearAnimation("amb@code_human_wander_texting@male@base", "static");
-            PlayerCharacter.Task.ClearAnimation("move_crouch_proto", "idle_intro");
+            Profile.LocalUser.Task.ClearAnimation("amb@code_human_wander_texting@male@base", "static");
+            Profile.LocalUser.Task.ClearAnimation("move_crouch_proto", "idle_intro");
             GameWaiter.Wait(200);
         }
 
@@ -365,7 +369,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
         private void OnAimAtEntity(Entity entity)
         {
-            PlayerCharacter.PlayAimAnim(entity);
+            Profile.LocalUser.PlayAimAnim(entity);
 
             // Wait 150 ms.
             GameWaiter.Wait(150);
@@ -379,7 +383,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             // Do our raycast in front of us.
             var ray = WorldProbe.StartShapeTestRay(GameplayCamera.Position,
                 GameplayCamera.Position + GameplayCamera.Direction * distance,
-                ShapeTestFlags.Everything, PlayerCharacter);
+                ShapeTestFlags.Everything, Profile.LocalUser);
 
             // Get the ray's result.
             var result = ray.GetResult();
@@ -389,14 +393,14 @@ namespace SpiderMan.Abilities.SpecialAbilities
         private Vehicle CreateWebShooterHelper()
         {
             // Create the prop...
-            var webShooterHelper = World.CreateVehicle("bmx", PlayerCharacter.Position);
+            var webShooterHelper = World.CreateVehicle("bmx", Profile.LocalUser.Position);
 
             // Configure it's properties.
             webShooterHelper.HasCollision = false;
             webShooterHelper.IsVisible = false;
 
             // Attach to the player's right hand.
-            webShooterHelper.AttachToEntity(PlayerCharacter, PlayerCharacter.GetBoneIndex(Bone.SKEL_R_Hand),
+            webShooterHelper.AttachToEntity(Profile.LocalUser, Profile.LocalUser.GetBoneIndex(Bone.SKEL_R_Hand),
                 Vector3.Zero, Vector3.Zero, false, false, false, 0, false);
 
             // return the new prop.

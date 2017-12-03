@@ -6,6 +6,8 @@ using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
@@ -14,6 +16,10 @@ namespace SpiderMan.Abilities.WebTech
     [WebTech("Attack Mode")]
     public class MultiDisarm : Tech
     {
+        public MultiDisarm(SpiderManProfile profile) : base(profile)
+        {
+        }
+
         public override string Name => "Multi Disarm";
 
         public override string Description =>

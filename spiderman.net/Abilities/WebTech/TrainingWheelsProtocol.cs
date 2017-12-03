@@ -1,6 +1,8 @@
 ﻿using SpiderMan.Abilities.Attributes;
 using SpiderMan.Abilities.Types;
 using SpiderMan.Library.Modding;
+using SpiderMan.ProfileSystem;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
 namespace SpiderMan.Abilities.WebTech
 {
@@ -10,6 +12,10 @@ namespace SpiderMan.Abilities.WebTech
     [WebTech("Suit Mode", IsDefault = true)]
     public class TrainingWheelsProtocol : Tech
     {
+        public TrainingWheelsProtocol(SpiderManProfile profile) :
+            base(profile)
+        { }
+
         /// <summary>
         ///     The name of the tech.
         /// </summary>

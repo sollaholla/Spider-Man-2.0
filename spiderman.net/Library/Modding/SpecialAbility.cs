@@ -1,4 +1,5 @@
 ﻿using GTA;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
 namespace SpiderMan.Library.Modding
 {
@@ -7,10 +8,15 @@ namespace SpiderMan.Library.Modding
     /// </summary>
     public abstract class SpecialAbility
     {
+        protected SpecialAbility(SpiderManProfile profile)
+        {
+            Profile = profile;
+        }
+
         /// <summary>
         ///     The local player's character component.
         /// </summary>
-        public Ped PlayerCharacter => CoreScript.PlayerCharacter;
+        public SpiderManProfile Profile { get; set; } 
 
         /// <summary>
         ///     This is called when this ability get's updated.

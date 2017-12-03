@@ -11,11 +11,11 @@ namespace SpiderMan.ScriptThreads
             Tick += OnTick;
         }
 
-        public Ped PlayerCharacter => CoreScript.PlayerCharacter;
+        public Ped PlayerCharacter => PlayerController.PlayerCharacter;
 
         private void OnTick(object sender, System.EventArgs e)
         {
-            if (!CoreScript.ModEnabled)
+            if (!PlayerController.ModEnabled)
                 return;
 
             if (PlayerCharacter.IsGettingUp)
