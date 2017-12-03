@@ -6,6 +6,7 @@ using SpiderMan.Abilities.SpecialAbilities;
 using SpiderMan.Library.Memory;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Modding.Stillhere;
+using SpiderMan.ProfileSystem.SpiderManScript;
 
 /// <summary>
 /// Credits: 
@@ -73,6 +74,10 @@ namespace SpiderMan
             var disableItem = new UIMenuItem("Disable Powers") { Tag = "m_Disabled", Description = "Disable the player's powers." };
             _mainMenu.AddMenuItem(enableItem);
             _mainMenu.AddMenuItem(disableItem);
+            var profile = new SpiderManDefaultProfile(".\\scripts\\Spider-Man Files\\SpideyProfile.ini");
+            profile.SetDefault();
+            profile.Read();
+            profile.AddToMenu(_mainMenu, _menuPool);
 
             _mainMenu.OnItemSelect += (a0, item, a2) =>
             {

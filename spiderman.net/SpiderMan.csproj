@@ -77,6 +77,9 @@
     <Compile Include="Library\Types\ShapeTest.cs" />
     <Compile Include="Library\Types\ShapeTestFlags.cs" />
     <Compile Include="Library\Types\ShapeTestResult.cs" />
+    <Compile Include="ProfileSystem\Profile.cs" />
+    <Compile Include="ProfileSystem\SerializedProperty.cs" />
+    <Compile Include="ProfileSystem\SpiderManScript\SpiderManProfile.cs" />
     <Compile Include="ScriptThreads\AnimHelper.cs" />
     <Compile Include="ScriptThreads\SpideySense.cs" />
     <Compile Include="Abilities\Types\CategorySlot.cs" />

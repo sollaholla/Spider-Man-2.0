@@ -1,3 +1,4 @@
+#define SIMPLE_UI
 using System;
 using System.Collections.Generic;
 using System.Drawing;

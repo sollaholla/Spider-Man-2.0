@@ -124,98 +124,96 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     // player can see where he's going to throw.
                     vehicle.Alpha = 100;
 
-                    GameWaiter.DoWhile(() =>
+                    while (true)
+                    {
+                        Controls.DisableControlsKeepRecording(2);
+                        Game.EnableControlThisFrame(2, Control.ReplayStartStopRecording);
+                        Game.EnableControlThisFrame(2, Control.MoveLeftRight);
+                        Game.EnableControlThisFrame(2, Control.MoveUpDown);
+                        Game.EnableControlThisFrame(2, Control.LookLeftRight);
+                        Game.EnableControlThisFrame(2, Control.LookUpDown);
+                        Game.EnableControlThisFrame(2, Control.NextCamera);
+
+                        if (weight < maxWeight / 2)
                         {
-                            Controls.DisableControlsKeepRecording(2);
-                            Game.EnableControlThisFrame(2, Control.ReplayStartStopRecording);
-                            Game.EnableControlThisFrame(2, Control.MoveLeftRight);
-                            Game.EnableControlThisFrame(2, Control.MoveUpDown);
-                            Game.EnableControlThisFrame(2, Control.LookLeftRight);
-                            Game.EnableControlThisFrame(2, Control.LookUpDown);
-                            Game.EnableControlThisFrame(2, Control.NextCamera);
+                            Game.EnableControlThisFrame(2, Control.Jump);
+                            Game.EnableControlThisFrame(2, Control.Sprint);
+                        }
 
-                            if (weight < maxWeight / 2)
-                            {
-                                Game.EnableControlThisFrame(2, Control.Jump);
-                                Game.EnableControlThisFrame(2, Control.Sprint);
-                            }
+                        if (PlayerCharacter.IsRagdoll || PlayerCharacter.IsBeingStunned ||
+                            PlayerCharacter.IsDead || PlayerCharacter.IsInVehicle() ||
+                            PlayerCharacter.IsGettingUp)
+                            break;
 
-                            if (PlayerCharacter.IsRagdoll || PlayerCharacter.IsBeingStunned ||
-                                PlayerCharacter.IsDead || PlayerCharacter.IsInVehicle() ||
-                                PlayerCharacter.IsGettingUp)
-                                return false;
+                        // Play our pickup animation sequence.
+                        if (PlayerCharacter.IsPlayingAnimation("anim@mp_snowball", "pickup_snowball"))
+                        {
+                            hasPlayedAnimation = true;
+                            vehicle.Velocity = Vector3.Zero;
+                            continue;
+                        }
 
-                            // Play our pickup animation sequence.
-                            if (PlayerCharacter.IsPlayingAnimation("anim@mp_snowball", "pickup_snowball"))
-                            {
-                                hasPlayedAnimation = true;
-                                vehicle.Velocity = Vector3.Zero;
-                                Script.Yield();
-                                return true;
-                            }
-                            // Now that we've played that animation let's continue.
-                            if (hasPlayedAnimation)
-                            {
-                                PlayerCharacter.ClearTasksImmediately();
+                        // Now that we've played that animation let's continue.
+                        if (hasPlayedAnimation)
+                        {
+                            PlayerCharacter.ClearTasksImmediately();
+                            PlayerCharacter.Task.PlayAnimation("random@arrests", "kneeling_arrest_get_up", 8.0f,
+                                -8.0f, -1,
+                                AnimationFlags.Loop |
+                                AnimationFlags.AllowRotation |
+                                AnimationFlags.UpperBodyOnly, 0.06f);
 
-                                PlayerCharacter.Task.PlayAnimation("random@arrests", "kneeling_arrest_get_up", 8.0f,
-                                    -8.0f, -1,
-                                    AnimationFlags.Loop |
-                                    AnimationFlags.AllowRotation |
-                                    AnimationFlags.UpperBodyOnly, 0.06f);
+                            var model = vehicle.Model;
+                            var d = model.GetDimensions();
+                            d.X = Math.Max(1.25f, d.X);
+                            var height = d.X * 0.8f;
 
-                                var model = vehicle.Model;
-                                var d = model.GetDimensions();
-                                d.X = Math.Max(1.25f, d.X);
-                                var height = d.X * 0.8f;
+                            // Attack the vehicle to the player.
+                            vehicle.AttachToEntity(PlayerCharacter, -1,
+                                PlayerCharacter.UpVector * height,
+                                new Vector3(0, 90, 90), false, false, false, 0, true);
 
-                                // Attack the vehicle to the player.
-                                vehicle.AttachToEntity(PlayerCharacter, -1,
-                                    PlayerCharacter.UpVector * height,
-                                    new Vector3(0, 90, 90), false, false, false, 0, true);
+                            // Make sure to only do this once.
+                            hasPlayedAnimation = false;
+                        }
 
-                                // Make sure to only do this once.
-                                hasPlayedAnimation = false;
-                            }
+                        if (PlayerCharacter.GetConfigFlag(60))
+                            PlayerCharacter.Velocity +=
+                                Vector3.WorldDown * (weight * .002f * Time.UnscaledDeltaTime);
 
-                            if (PlayerCharacter.GetConfigFlag(60))
-                                PlayerCharacter.Velocity +=
-                                    Vector3.WorldDown * (weight * .002f * Time.UnscaledDeltaTime);
+                        // Set the animation speed to 0 so it loops in that pose.
+                        PlayerCharacter.SetAnimationSpeed("random@arrests", "kneeling_arrest_get_up", 0.0f);
 
-                            // Set the animation speed to 0 so it loops in that pose.
-                            PlayerCharacter.SetAnimationSpeed("random@arrests", "kneeling_arrest_get_up", 0.0f);
+                        // Once we're playing this animation we want to have the car attached to the player.
+                        //PlayerCharacter.SetIKTarget(IKIndex.LeftArm, vehicle.GetOffsetInWorldCoords(new Vector3(0, 0.5f, -0.2f)), -1, 0);
+                        //PlayerCharacter.SetIKTarget(IKIndex.RightArm, vehicle.GetOffsetInWorldCoords(new Vector3(0, -0.5f, -0.2f)), -1, 0);
 
-                            // Once we're playing this animation we want to have the car attached to the player.
-                            //PlayerCharacter.SetIKTarget(IKIndex.LeftArm, vehicle.GetOffsetInWorldCoords(new Vector3(0, 0.5f, -0.2f)), -1, 0);
-                            //PlayerCharacter.SetIKTarget(IKIndex.RightArm, vehicle.GetOffsetInWorldCoords(new Vector3(0, -0.5f, -0.2f)), -1, 0);
+                        // If we press vehicle enter again, then let's set down the vehicle.
+                        if (Game.IsDisabledControlJustReleased(2, Control.Enter))
+                        {
+                            PlayerCharacter.Task.ClearAll();
+                            PlayerCharacter.Task.PlayAnimation("anim@mp_snowball", "pickup_snowball", 8.0f, -4.0f,
+                                500, AnimationFlags.AllowRotation, 0.0f);
+                            GameWaiter.Wait(250);
+                            vehicle.Detach();
+                            vehicle.Position = PlayerCharacter.Position + PlayerCharacter.ForwardVector * 2.5f;
+                            break;
+                        }
 
-                            // If we press vehicle enter again, then let's set down the vehicle.
-                            if (Game.IsDisabledControlJustReleased(2, Control.Enter))
-                            {
-                                PlayerCharacter.Task.ClearAll();
-                                PlayerCharacter.Task.PlayAnimation("anim@mp_snowball", "pickup_snowball", 8.0f, -4.0f,
-                                    500, AnimationFlags.AllowRotation, 0.0f);
-                                GameWaiter.Wait(250);
-                                vehicle.Detach();
-                                vehicle.Position = PlayerCharacter.Position + PlayerCharacter.ForwardVector * 2.5f;
-                                return false;
-                            }
+                        if (Game.IsDisabledControlJustReleased(2, Control.Attack))
+                        {
+                            PlayerCharacter.Task.ClearAll();
+                            PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand", 8.0f,
+                                -4.0f, 500, AnimationFlags.AllowRotation, 0.1f);
+                            vehicle.Detach();
+                            vehicle.Velocity += PlayerCharacter.Velocity;
+                            vehicle.Velocity = GameplayCamera.Direction * 25000 / weight;
+                            PlayerCharacter.Velocity = Vector3.Zero;
+                            break;
+                        }
 
-                            if (Game.IsDisabledControlJustReleased(2, Control.Attack))
-                            {
-                                PlayerCharacter.Task.ClearAll();
-                                PlayerCharacter.Task.PlayAnimation("weapons@projectile@", "throw_m_fb_stand", 8.0f,
-                                    -4.0f, 500, AnimationFlags.AllowRotation, 0.1f);
-                                vehicle.Detach();
-                                vehicle.Velocity += PlayerCharacter.Velocity;
-                                vehicle.Velocity = GameplayCamera.Direction * 25000 / weight;
-                                PlayerCharacter.Velocity = Vector3.Zero;
-                                return false;
-                            }
-
-                            return true;
-                        },
-                        null);
+                        Script.Yield();
+                    }
 
                     // Detach the vehicle if needed.
                     if (vehicle.IsAttached())
@@ -276,11 +274,13 @@ namespace SpiderMan.Abilities.SpecialAbilities
             PlayerCharacter.Task.PlayAnimation(dict, anim,
                 8.0f, -4.0f, duration, AnimationFlags.AllowRotation, 0.0f);
 
-            // Begin our loop.
-            GameWaiter.DoWhile(1000, () =>
+            var timer = 1f;
+            while (timer > 0f)
             {
+                timer -= Time.DeltaTime;
+
                 if (PlayerCharacter.IsRagdoll)
-                    return false;
+                    break;
 
                 // Continue to disable the controls.
                 Controls.DisableControlsKeepRecording(2);
@@ -322,13 +322,12 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     {
                         ApplyDamage(direction, targetEntity, targetEntity.GetEntityType(), boneCoord);
                     }
-
-                    return false;
+                    break;
                 }
 
-                return true;
+                Script.Yield();
+            }
 
-            }, null);
             PlayerCharacter.SetConfigFlag(60, false);
             PlayerCharacter.IsMeleeProof = false;
             PlayerCharacter.IsCollisionProof = false;
