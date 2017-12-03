@@ -133,10 +133,10 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 Quaternion.Euler(GameplayCamera.Rotation) * GetMovementVector(),
                 Vector3.WorldUp).ToHeading();
 
-            bool wasInv = PlayerCharacter.IsInvincible;
-            bool wasColP = PlayerCharacter.IsCollisionProof;
-            bool wasMelP = PlayerCharacter.IsMeleeProof;
-            bool wasBP = PlayerCharacter.IsBulletProof;
+            var wasInv = PlayerCharacter.IsInvincible;
+            var wasColP = PlayerCharacter.IsCollisionProof;
+            var wasMelP = PlayerCharacter.IsMeleeProof;
+            var wasBp = PlayerCharacter.IsBulletProof;
 
             PlayerCharacter.IsInvincible = true;
             PlayerCharacter.IsCollisionProof = true;
@@ -160,7 +160,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             PlayerCharacter.IsInvincible = wasInv;
             PlayerCharacter.IsCollisionProof = wasColP;
             PlayerCharacter.IsMeleeProof = wasMelP;
-            PlayerCharacter.IsBulletProof = wasBP;
+            PlayerCharacter.IsBulletProof = wasBp;
         }
 
         /// <summary>

@@ -18,6 +18,11 @@ namespace SpiderMan.Abilities.SpecialAbilities
     {
         public delegate void OnCatchLanding(object sender, EventArgs e, float fallHeight);
 
+        /// <summary>
+        /// Called once the player lands on the ground.
+        /// </summary>
+        public static event OnCatchLanding CaughtLanding;
+
         // A flag to help us know
         // when the player was falling.
         private static bool _falling;
@@ -52,8 +57,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
             new Model("bmx").Request();
         }
 
-        public static event OnCatchLanding CaughtLanding;
-
         /// <summary>
         ///     Overrieds our internal fall height to the specified value.
         /// </summary>
@@ -85,15 +88,21 @@ namespace SpiderMan.Abilities.SpecialAbilities
             var entity = Utilities.GetAimedEntity(rayMaxDist, out var hitPoint, out var entityType);
 
             // Now do the corresponding logical operation.
-            if (entityType == EntityType.None) WorldGrapple(hitPoint);
-            else if (entityType == EntityType.Vehicle) VehicleGrapple((Vehicle) entity);
-            else if (entityType == EntityType.Ped) PedGrapple((Ped) entity);
+            switch (entityType)
+            {
+                case EntityType.None:
+                    WorldGrapple(hitPoint);
+                    break;
+                case EntityType.Vehicle:
+                    VehicleGrapple((Vehicle) entity);
+                    break;
+            }
         }
 
         /// <summary>
         ///     Catch our landing so we don't die from high falls.
         /// </summary>
-        private bool CheckFallAndCatchLanding(Rope r = null)
+        private bool CheckFallAndCatchLanding(Rope rope = null)
         {
             // If the player is falling then...
             if (PlayerCharacter.IsFalling)
@@ -115,7 +124,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
             }
 
             // Catch our landing at high falls.
-            var didCollide = false;
+            bool didCollide;
             if (!(didCollide = PlayerCharacter.GetConfigFlag(60)) && !(PlayerCharacter.HeightAboveGround < 2f)) return false;
 
             // Check the fall height, catch the landing,
@@ -130,7 +139,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     PlayerCharacter.Velocity = vel;
                 }
                 // Try to catch our landing.
-                r?.Delete();
+                rope?.Delete();
                 CatchLanding();
                 CaughtLanding?.Invoke(this, new EventArgs(), _fallHeight);
                 _fallHeight = 0f;
@@ -319,20 +328,6 @@ namespace SpiderMan.Abilities.SpecialAbilities
         }
 
         /// <summary>
-        ///     This will grapple a ped towards the player, and make them ragdoll.
-        ///     If the ped is armed, it will automatically disarm them, but they won't ragdoll.
-        /// </summary>
-        /// <param name="ped"></param>
-        private void PedGrapple(Ped ped)
-        {
-            // TODO: Grapple a ped towards us.
-            // Make sure that the ped didn't return null for some reason.
-            if (ped == null)
-                // ReSharper disable once RedundantJumpStatement
-                return;
-        }
-
-        /// <summary>
         ///     Grapple onto the rooftops of moving / stationary land vehicles.
         /// </summary>
         private void VehicleGrapple(Vehicle vehicle)
@@ -422,7 +417,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 initialTargetDirection.Normalize();
 
                 // The collection of rops we will use as webs.
-                List<Rope> ropes = new List<Rope>();
+                var ropes = new List<Rope>();
 
                 // The delay that we use to delete the ropes.
                 var ropeDeleteDelay = 0.75f;
@@ -446,8 +441,18 @@ namespace SpiderMan.Abilities.SpecialAbilities
             }
         }
 
+        /// <summary>
+        /// Grapple the player towards the specified vehicle.
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="twoHandedAnim"></param>
+        /// <param name="elapsedTime"></param>
+        /// <param name="initialTargetDirection"></param>
+        /// <param name="ropes"></param>
+        /// <param name="ropeDeleteDelay"></param>
+        /// <returns></returns>
         private bool GrappleToVehicle(Vehicle vehicle, bool twoHandedAnim, float elapsedTime,
-            Vector3 initialTargetDirection, List<Rope> ropes, ref float ropeDeleteDelay)
+            Vector3 initialTargetDirection, IList<Rope> ropes, ref float ropeDeleteDelay)
         {
             // Two handed web logic...
             ropeDeleteDelay = twoHandedAnim
@@ -522,7 +527,14 @@ namespace SpiderMan.Abilities.SpecialAbilities
             return true;
         }
 
-        private float UpdateRopes1(Vehicle vehicle, List<Rope> ropes, float ropeDeleteDelay)
+        /// <summary>
+        /// Updates a 1 handed rope.
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="ropes"></param>
+        /// <param name="ropeDeleteDelay"></param>
+        /// <returns></returns>
+        private float UpdateRopes1(ISpatial vehicle, IList<Rope> ropes, float ropeDeleteDelay)
         {
             // Stop the upper body animation after some time, and move to
             // a falling animation.
@@ -597,7 +609,14 @@ namespace SpiderMan.Abilities.SpecialAbilities
             return ropeDeleteDelay;
         }
 
-        private float UpdateRopes2(Vehicle vehicle, List<Rope> ropes, float ropeDeleteDelay)
+        /// <summary>
+        /// Update's a 2 handed rope.
+        /// </summary>
+        /// <param name="vehicle"></param>
+        /// <param name="ropes"></param>
+        /// <param name="ropeDeleteDelay"></param>
+        /// <returns></returns>
+        private float UpdateRopes2(ISpatial vehicle, IList<Rope> ropes, float ropeDeleteDelay)
         {
             // Let's update the swimming anim for this if any.
             if (PlayerCharacter.IsPlayingAnimation("swimming@swim", "recover_flip_back_to_front"))
@@ -656,10 +675,19 @@ namespace SpiderMan.Abilities.SpecialAbilities
             return ropeDeleteDelay;
         }
 
-        private Vector3 GetAcceleration(float elapsedTime, float angle, float degToRad, float gravity, float targetVelocityMag)
+        /// <summary>
+        /// Get the acceleration arc needed to reach the target vehicle.
+        /// </summary>
+        /// <param name="elapsedTime"></param>
+        /// <param name="angle"></param>
+        /// <param name="degToRad"></param>
+        /// <param name="gravity"></param>
+        /// <param name="targetVelocityMag"></param>
+        /// <returns></returns>
+        private Vector3 GetAcceleration(float elapsedTime, float angle, float gravity, float targetVelocityMag)
         {
-            var vx = (float)Math.Sqrt(targetVelocityMag) * (float)Math.Cos(angle * degToRad);
-            var vy = (float)Math.Sqrt(targetVelocityMag) * (float)Math.Sin(angle * degToRad);
+            var vx = (float)Math.Sqrt(targetVelocityMag) * (float)Math.Cos(angle * Maths.Deg2Rad);
+            var vy = (float)Math.Sqrt(targetVelocityMag) * (float)Math.Sin(angle * Maths.Deg2Rad);
 
             // Get the rotation to the target.
             var rotation = _helperObj.Quaternion;
@@ -685,7 +713,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
         ///     Despawns the specified ropes.
         /// </summary>
         /// <param name="ropes">The ropes to despawn.</param>
-        private static void DespawnRopes(List<Rope> ropes)
+        private static void DespawnRopes(IEnumerable<Rope> ropes)
         {
             foreach (var rope in ropes)
                 if (rope != null && rope.Exists())

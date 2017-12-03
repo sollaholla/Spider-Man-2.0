@@ -360,7 +360,7 @@ namespace SpiderMan.Library.Modding.Stillhere
                 TitleUnderlineColor.G, TitleUnderlineColor.B,
                 TitleUnderlineColor.A); //Draw rectangle as underline of title
 
-            foreach (UIMenuItem item in _itemList)
+            foreach (var item in _itemList)
             {
                 var ScrollOrNotDecision =
                     UseScroll && _itemList.IndexOf(item) >= minItem && _itemList.IndexOf(item) <= maxItem || !UseScroll;
@@ -402,7 +402,7 @@ namespace SpiderMan.Library.Modding.Stillhere
                                 DescriptionTextColor.G, DescriptionTextColor.B, DescriptionTextColor.A, xPosItemText,
                                 yPosItem + YPosDescBasedOnScroll * posMultiplier, xPosItemText, xPosItemValue,
                                 TextJustification.Left, true); // Draw description text at bottom of menu
-                            float numLines = item.DescriptionWidth / (boxWidth - 10);
+                            var numLines = item.DescriptionWidth / (boxWidth - 10);
                             for (var l = 0; l < (int) Math.Ceiling(numLines); l++)
                                 DrawRectangle(xPosBG, yPosItemBG + (l + YPosDescBasedOnScroll) * posMultiplier,
                                     MenuBGWidth, heightItemBG, DescriptionBoxColor.R, DescriptionBoxColor.G,

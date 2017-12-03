@@ -393,12 +393,12 @@ namespace SpiderMan.Library.Modding.Stillhere
         {
             foreach (var cat in Categories)
             {
-                bool isSelectedCategory = SelectedCategory == cat;
+                var isSelectedCategory = SelectedCategory == cat;
 
-                bool catTextureExists =
+                var catTextureExists =
                     cat.CategoryTexture !=
                     null; //File.Exists(TexturePath + UIHelper.MakeValidFileName(cat.Name) + ".png");
-                bool itemTextureExists =
+                var itemTextureExists =
                     cat.SelectedItem.ItemTexture !=
                     null; //File.Exists(TexturePath + UIHelper.MakeValidFileName(cat.SelectedItem.Name) + ".png");
                 var anyTextureExists = catTextureExists || itemTextureExists;
@@ -406,7 +406,7 @@ namespace SpiderMan.Library.Modding.Stillhere
                 if (UseTextures && anyTextureExists)
                 {
                     //UI.DrawTexture(TexturePath + UIHelper.MakeValidFileName(catTextureExists ? cat.Name : cat.SelectedItem.Name) + ".png", Categories.IndexOf(cat), 1, TextureRefreshRate, new Point((int)(cat.position2D.X * UI.WIDTH) + xTextureOffset, (int)(cat.position2D.Y * UI.HEIGHT) + yTextureOffset), new PointF(0.5f, 0.5f), TextureSize, 0f, isSelectedCategory ? Color.FromArgb(255, 255, 255, 255) : Color.FromArgb(120, 255, 255, 255), aspectRatio);
-                    Texture2D temp = catTextureExists ? cat.CategoryTexture : cat.SelectedItem.ItemTexture;
+                    var temp = catTextureExists ? cat.CategoryTexture : cat.SelectedItem.ItemTexture;
                     temp.Draw(1, TextureRefreshRate,
                         new Point((int)(cat.position2D.X * UI.WIDTH + xTextureOffset),
                             (int)(cat.position2D.Y * UI.HEIGHT + yTextureOffset)), new PointF(0.5f, 0.5f),
