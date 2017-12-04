@@ -281,6 +281,8 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                 // Destroy the rope here.
                 if (Rope.Exists(rope))
                     rope?.Delete();
+
+                //OverrideFallHeight(float.MaxValue);
             }
         }
 

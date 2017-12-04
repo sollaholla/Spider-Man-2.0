@@ -10,6 +10,10 @@ namespace SpiderMan.ProfileSystem.SpiderManScript
 {
     public class SpiderManProfile : Profile
     {
+        public delegate void OnProfileActivated(object sender, EventArgs e, Profile newProfile);
+
+        public static OnProfileActivated ProfileActivated;
+
         public SpiderManProfile(string path) : base(path)
         {
         }
@@ -323,11 +327,15 @@ namespace SpiderMan.ProfileSystem.SpiderManScript
             subMenu.OnItemSelect += (sender, item, index) =>
             {
                 if (item == activatePowersButton)
+                {
                     LocalUser = Game.Player.Character;
-                if (item == activatePowersButton2)
+                    ProfileActivated.Invoke(this, null, this);
+                }
+                else if (item == activatePowersButton2)
                 {
                     Game.Player.ChangeModel(Skin);
                     LocalUser = Game.Player.Character;
+                    ProfileActivated.Invoke(this, null, this);
                 }
 
                 if (item != saveButton) return;

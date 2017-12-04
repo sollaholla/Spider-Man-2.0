@@ -10,7 +10,9 @@ namespace SpiderMan.Abilities.Types
         public AttachmentInfo(Entity entity1, Entity entity2, Rope rope)
         {
             Entity1 = entity1;
+            Entity1.IsPersistent = true;
             Entity2 = entity2;
+            Entity2.IsPersistent = true;
             Rope = rope;
         }
 
@@ -24,16 +26,48 @@ namespace SpiderMan.Abilities.Types
             if (!Rope.Exists() || Terminated)
                 return;
 
-            const float MaxDistance = 7000f;
+            const float maxDistance = 7000f;
             var distance1 = Vector3.DistanceSquared(referenceCoords, Entity1.Position);
             var distance2 = Vector3.DistanceSquared(referenceCoords, Entity2.Position);
 
-            if (distance1 >= MaxDistance || distance2 >= MaxDistance || !Entity.Exists(Entity1) ||
-                !Entity.Exists(Entity2))
+            if (distance1 >= maxDistance)
             {
                 Delete();
                 Terminated = true;
+                return;
             }
+
+            if (distance2 >= maxDistance)
+            {
+                Delete();
+                Terminated = true;
+                return;
+            }
+
+            if (!Entity.Exists(Entity1))
+            {
+                Delete();
+                Terminated = true;
+                return;
+            }
+
+            if (!Entity.Exists(Entity2))
+            {
+                Delete();
+                Terminated = true;
+                return;
+            }
+
+            if (!Entity1.IsPersistent)
+            {
+                Delete();
+                Terminated = true;
+                return;
+            }
+
+            if (Entity2.IsPersistent) return;
+            Delete();
+            Terminated = true;
         }
 
         public void Delete()

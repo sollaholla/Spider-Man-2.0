@@ -115,6 +115,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                         Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
                             2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
                         Profile.LocalUser.Velocity = Vector3.WorldUp * 25f;
+                        WebZip.OverrideFallHeight(float.MaxValue);
                         GameWaiter.Wait(100);
                         Profile.LocalUser.IsCollisionProof = false;
                     }

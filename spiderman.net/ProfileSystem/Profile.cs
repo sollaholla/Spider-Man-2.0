@@ -47,10 +47,10 @@ namespace SpiderMan.ProfileSystem
         /// <summary>
         /// Reads property values from the ini at <see cref="Path"/>.
         /// </summary>
-        public void Read()
+        public bool Read()
         {
             if (!File.Exists(Path))
-                return;
+                return false;
 
             // Initialize variables.
             var type = GetType();
@@ -78,6 +78,8 @@ namespace SpiderMan.ProfileSystem
                     // ignored
                 }
             }
+
+            return true;
         }
 
         /// <summary>

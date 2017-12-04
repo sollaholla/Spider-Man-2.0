@@ -23,7 +23,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
         /// <summary>
         ///     Keeps track of all activate attachments.
         /// </summary>
-        private readonly List<AttachmentInfo> _activeAttachments;
+        private static readonly List<AttachmentInfo> _activeAttachments;
 
         /// <summary>
         ///     The initial distance from the character to the web shooter.
@@ -46,6 +46,11 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
         /// </summary>
         private Rope _webShooterRope;
 
+        static WebAttachments()
+        {
+            _activeAttachments = new List<AttachmentInfo>();
+        }
+
         /// <summary>
         ///     The main ctor.
         /// </summary>
@@ -57,7 +62,6 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             Streaming.RequestAnimationDictionary("weapons@projectile@");
             Streaming.RequestAnimationDictionary("swimming@swim");
             new Model("bmx").Request();
-            _activeAttachments = new List<AttachmentInfo>();
             BackgroundThread.RegisterTick(UpdateAttachments);
         }
 
@@ -223,7 +227,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                         var entity = GetEntityFromRayResult(res);
                         SetAttachedEntityToRagdollIfPed();
                         var rope = AttachRopeAttachedEntityToEntity(entity);
-                        _activeAttachments.Add(new AttachmentInfo(entity, _ropeAttachedEntity, rope));
+                        AddAttachment(entity, _ropeAttachedEntity, rope);
                         EndAttachment();
                         break;
                     }
@@ -231,6 +235,11 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 
                 Script.Yield();
             }
+        }
+
+        public static void AddAttachment(Entity entity1, Entity entity2, Rope rope)
+        {
+            _activeAttachments.Add(new AttachmentInfo(entity1, entity2, rope));
         }
 
         private void StartRopeAttachment()

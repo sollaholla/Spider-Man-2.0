@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using GTA;
 using GTA.Native;
 using SpiderMan.Abilities.SpecialAbilities;
@@ -53,6 +54,11 @@ namespace SpiderMan
         private readonly MenuPool _menuPool;
 
         /// <summary>
+        /// The profiles found in the files directory.
+        /// </summary>
+        private readonly List<SpiderManProfile> _profiles = new List<SpiderManProfile>();
+
+        /// <summary>
         /// The profile that controls the player.
         /// </summary>
         private static SpiderManProfile _spiderManProfile;
@@ -81,9 +87,18 @@ namespace SpiderMan
             _menuPool = new MenuPool();
             _menuPool.AddMenu(_mainMenu);
 
-            _spiderManProfile = new SpiderManProfile(".\\scripts\\Spider-Man Files\\SpideyProfile.ini");
-            _spiderManProfile.Init();
-            _spiderManProfile.AddToMenu(_mainMenu, _menuPool);
+            var files = Directory.GetFiles(".\\scripts\\Spider-Man Files\\Profiles\\", "*.ini");
+            foreach (var file in files)
+            {
+                var profile = new SpiderManProfile(file);
+                profile.Init();
+                profile.AddToMenu(_mainMenu, _menuPool);
+            }
+
+            SpiderManProfile.ProfileActivated += (sender, args, profile) =>
+            {
+                _spiderManProfile = (SpiderManProfile)profile;
+            };
 
             var deactivateButton = new UIMenuItem("Deactivate Powers");
             _mainMenu.AddMenuItem(deactivateButton);
@@ -131,6 +146,7 @@ namespace SpiderMan
         /// <param name="e"></param>
         private void OnTick(object sender, EventArgs e)
         {
+            InitMemory();
             UpdateMenus();
 
             if (!ModEnabled || _setProfileNull)
@@ -138,7 +154,7 @@ namespace SpiderMan
                 if (!_initAbilities) return;
                 StopAllAbilities();
                 _initAbilities = false;
-                _spiderManProfile.LocalUser = null;
+                _spiderManProfile = null;
                 _setProfileNull = false;
                 return;
             }
@@ -153,7 +169,7 @@ namespace SpiderMan
             }
 
             // Initialize our abilities.
-            Init();
+            InitAbilities();
             UpdateAbilities();
 
             Function.Call((Hash)0xC388A0F065F5BC34, Game.Player.Handle, 1f);
@@ -212,15 +228,6 @@ namespace SpiderMan
             Function.Call(Hash.SET_PLAYER_HAS_RESERVE_PARACHUTE, Game.Player.Handle, false);
             if (PlayerCharacter.Weapons.HasWeapon(WeaponHash.Parachute))
                 PlayerCharacter.Weapons.Remove(WeaponHash.Parachute);
-        }
-
-        /// <summary>
-        ///     Here's where we initialize our abilities and memory stuff.
-        /// </summary>
-        private void Init()
-        {
-            InitMemory();
-            InitAbilities();
         }
 
         private void InitAbilities()
