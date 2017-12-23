@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms.VisualStyles;
 using GTA;
 using GTA.Math;
 using GTA.Native;
@@ -9,6 +12,7 @@ using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
 using SpiderMan.ProfileSystem.SpiderManScript;
+using SpiderMan.ScriptThreads;
 using Rope = SpiderMan.Library.Types.Rope;
 
 namespace SpiderMan.Abilities.WebTech
@@ -21,7 +25,9 @@ namespace SpiderMan.Abilities.WebTech
         private float _grenadeCooldown;
 
         public WebGrenade(SpiderManProfile profile) : base(profile)
-        { }
+        {
+            new Model("w_ex_grenadefrag").Request();
+        }
 
         public override string Name => "Web Grenade";
 
@@ -58,23 +64,40 @@ namespace SpiderMan.Abilities.WebTech
             PlayerCharacter.Heading = GameplayCamera.Direction.ToHeading();
             PlayerCharacter.PlayGrappleAnim(1f);
             var grenade = World.CreateProp("w_ex_grenadefrag", PlayerCharacter.Position, false, false);
-            grenade.AttachTo(PlayerCharacter, PlayerCharacter.GetBoneIndex(Bone.SKEL_R_Hand));
-            GameWaiter.Wait(200);
+            if (grenade == null)
+                return;
+            grenade.AttachTo(PlayerCharacter, PlayerCharacter.GetBoneIndex(Bone.SKEL_R_Hand), new Vector3(0.1f, 0f, -0.04f), new Vector3(-90, 0, 0));
+            var timer = 0.25f;
+            while (timer > 0f)
+            {
+                PlayerCharacter.Heading = GameplayCamera.Direction.ToHeading();
+                timer -= Time.DeltaTime;
+                Script.Yield();
+            }
             grenade.Detach();
-            grenade.Velocity = GameplayCamera.Direction * 45f + PlayerCharacter.Velocity;
+            grenade.Velocity = GameplayCamera.Direction * 75f + PlayerCharacter.Velocity + Vector3.WorldUp * 2.5f;
             _currentGrenades.Add(new Grenade(4f, grenade));
-            _grenadeCooldown = 20f;
+            _grenadeCooldown = 5f;
         }
 
         private void UpdateGrenades()
         {
-            foreach (var grenade in _currentGrenades)
+            for (var i = 0; i < _currentGrenades.Count; i++)
             {
+                var grenade = _currentGrenades[i];
                 grenade.Timer -= Game.LastFrameTime;
-                if (grenade.Timer <= 0)
+
+                if (!(grenade.Timer <= 0) && !grenade.Prop.HasCollidedWithAnything) continue;
+                if (grenade.Exploded) continue;
+
+                grenade.Explode();
+
+                _currentGrenades.ForEach(x =>
                 {
-                    grenade.Explode();
-                }
+                    if (x == grenade)
+                        return;
+                    x.Delete();
+                });
             }
         }
     }
@@ -82,8 +105,6 @@ namespace SpiderMan.Abilities.WebTech
     public class Grenade
     {
         private readonly List<AttachmentInfo> _attachments = new List<AttachmentInfo>();
-
-        private bool _didExplode;
 
         public Grenade(float timer, Prop prop)
         {
@@ -95,6 +116,8 @@ namespace SpiderMan.Abilities.WebTech
 
         public Prop Prop { get; set; }
 
+        public bool Exploded { get; private set; }
+
         public void Delete()
         {
             Prop.Delete();
@@ -104,26 +127,33 @@ namespace SpiderMan.Abilities.WebTech
 
         public void Explode()
         {
-            if (_didExplode) return;
-            _didExplode = true;
+            if (Exploded) return;
+            Exploded = true;
             var entities = World.GetNearbyEntities(Prop.Position, 20f);
+            Prop.Position = new Vector3(Prop.Position.X, Prop.Position.Y, World.GetGroundHeight(Prop.Position));
+            Prop.FreezePosition = true;
             foreach (var ent in entities)
             {
                 if (ent.GetEntityType() == EntityType.Object) continue;
                 if (ent.Handle == Game.Player.Character.Handle) continue;
+                if (ent.IsDead) continue;
+                //Utilities.CreateParticleChain(Prop.Position, ent.Position, Vector3.Zero, 0.1f, particleScale: 0.2f);
+                if (ent is Ped ped)
+                {
+                    if (ped.IsInVehicle())
+                        continue;
+                    Utilities.ShockPed(ped, 100);
+                }
                 var length = Vector3.Distance(ent.Position, Prop.Position);
                 var rope = Rope.AddRope(Prop.Position, length, GTARopeType.ThickRope, length / 2, 0.1f, true, false);
                 rope.AttachEntities(Prop, Vector3.Zero, ent, Vector3.Zero, length / 2);
                 rope.ActivatePhysics();
                 _attachments.Add(new AttachmentInfo(ent, Prop, rope));
-                WebAttachments.AddAttachment(ent, Prop, rope);
+                WebAttachments.AddAttachment(ent, Prop, rope, true);
             }
-            GTAGraphics.StartParticle("core", "ent_ray_prologue_elec_crackle_sp", Prop.Position, Vector3.Zero, 1.0f);
-            Prop.IsVisible = false;
-            //Object object, float weight, float p2,
-            //float p3, float p4, float p5, float gravity, float p7,
-            //float p8, float p9, float p10, float buoyancy
-            Function.Call(Hash.SET_OBJECT_PHYSICS_PARAMS, Prop.Handle, 10000f);
+            GTAGraphics.StartParticle("core", "ent_ray_prologue_elec_crackle_sp", Prop.Position, Vector3.Zero, 5.0f);
+            World.DrawLightWithRange(Prop.Position, Color.White, 25f, 100f);
+            World.AddOwnedExplosion(Game.Player.Character, Prop.Position, ExplosionType.Grenade, 0f, 0.1f, true, false);
         }
     }
 }

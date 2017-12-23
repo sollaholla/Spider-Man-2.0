@@ -417,6 +417,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
 
         private void ApplyDamage(Vector3 direction, Entity entity, EntityType type, Vector3 hitCoords)
         {
+
             switch (type)
             {
                 case EntityType.Vehicle:

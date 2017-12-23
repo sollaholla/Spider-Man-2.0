@@ -69,7 +69,7 @@ namespace SpiderMan.Abilities.SpecialAbilities
                 // For now we'll use a constant for the desired speed.
                 var velocity = direction * _desiredSpeed * Profile.RunSpeedMultiplier;
 
-                _desiredSpeed = _playerState != PlayerState.None ? Maths.Lerp(_desiredSpeed, 2000f, Time.UnscaledDeltaTime * 0.4f) : Maths.Lerp(_desiredSpeed, 750f, Time.UnscaledDeltaTime * 5f);
+                _desiredSpeed = _playerState != PlayerState.None ? Maths.Lerp(_desiredSpeed, 26.8224f, Time.UnscaledDeltaTime * 0.4f) : Maths.Lerp(_desiredSpeed, 10f, Time.UnscaledDeltaTime * 5f);
 
                 //Now for our switch case we're going to see 
                 //what state the player is in.
@@ -79,17 +79,16 @@ namespace SpiderMan.Abilities.SpecialAbilities
                     // multiplied by our desired speed.
                     case PlayerState.Run:
                         Profile.LocalUser.Velocity =
-                            velocity / 2 * Time.UnscaledDeltaTime; // dividing by 2 so running is slower.
+                            velocity / 2; // dividing by 2 so running is slower.
                         break;
                     case PlayerState.Sprint:
-                        Profile.LocalUser.Velocity = velocity * Time.UnscaledDeltaTime;
-                        Function.Call(Hash.SET_PED_MOTION_BLUR, Profile.LocalUser.Handle, 2.0f);
+                        Profile.LocalUser.Velocity = velocity;
                         break;
                 }
             }
             else
             {
-                _desiredSpeed = Maths.Lerp(_desiredSpeed, 750f, Time.UnscaledDeltaTime * 5f);
+                _desiredSpeed = Maths.Lerp(_desiredSpeed, 26.8224f, Time.UnscaledDeltaTime * 5f);
             }
 
             //UI.ShowSubtitle(_desiredSpeed.ToString(CultureInfo.InvariantCulture));

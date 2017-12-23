@@ -99,11 +99,9 @@ namespace SpiderMan.Abilities.WebTech
 
         private void DisarmPed(Ped ped)
         {
-            ped.Task.ClearAllImmediately();
-            ped.Task.PlayAnimation("missheist_agency3astumble_walk", "stumble_walk_player1",
-                -8.0f, 4.0f, 1250, AnimationFlags.AllowRotation, 0.0f);
             var weaponObject = ped.Weapons.CurrentWeaponObject;
             if (weaponObject == null) return;
+            ped.Weapons.Drop();
             weaponObject.Detach();
             weaponObject.ApplyForce(ped.ForwardVector * 150 * Time.UnscaledDeltaTime);
             ped.Weapons.RemoveAll();

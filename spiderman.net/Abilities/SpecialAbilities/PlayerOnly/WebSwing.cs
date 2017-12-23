@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using GTA;
 using GTA.Math;
+using GTA.Native;
 using SpiderMan.Library.Extensions;
 using SpiderMan.Library.Modding;
 using SpiderMan.Library.Types;
@@ -42,6 +43,22 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 
             // Disable the parachute deploy control.
             Game.DisableControlThisFrame(2, Control.ParachuteDeploy);
+            Game.DisableControlThisFrame(2, Control.Reload);
+
+            if (Profile.LocalUser.HeightAboveGround > 15f && Game.IsDisabledControlJustPressed(2, Control.Reload))
+            {
+                var entity = Utilities.GetAimedEntity(250f, out var endCoords, out var entType);
+                if (endCoords != Vector3.Zero && entType == EntityType.Vehicle && 
+                    entity.Position.Z > Profile.LocalUser.Position.Z)
+                {
+                    var veh = new Vehicle(entity.Handle);
+                    if (veh.Model.IsPlane || veh.Model.IsHelicopter || 
+                        veh.FriendlyName == "Atomic Blimp")
+                    {
+                        DoSwing(veh.Position, veh, Control.Reload, false);
+                    }
+                }
+            }
 
             // Count down the web swing cooldown.
             if (_webSwingCooldown > 0f)
@@ -64,17 +81,22 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             if (!Game.IsDisabledControlPressed(2, Control.Attack) || !(Profile.LocalUser.HeightAboveGround > 15) ||
                 Profile.LocalUser.IsGettingUp && !Profile.LocalUser.IsFalling) return;
 
-            // Create a helper prop for rotations.
-            var rotationHelper = World.CreateVehicle("bmx", Profile.LocalUser.Position);
-            rotationHelper.Alpha = 0;
-
             // Also create a prop at the hit point.
             var webHitHelper = World.CreateVehicle("bmx", hitPoint);
-
             // Set the props up for use.
             webHitHelper.HasCollision = false;
             webHitHelper.FreezePosition = true;
             webHitHelper.IsVisible = false;
+
+            DoSwing(hitPoint, webHitHelper, Control.Attack);
+            webHitHelper.Delete();
+        }
+
+        private void DoSwing(Vector3 hitPoint, Entity webHitHelper, Control webControl, bool checkMinAngle = true)
+        {
+            // Create a helper prop for rotations.
+            var rotationHelper = World.CreateVehicle("bmx", Profile.LocalUser.Position);
+            rotationHelper.Alpha = 0;
 
             // Store the initial velocity.
             var initialVelocity = Profile.LocalUser.Velocity;
@@ -107,7 +129,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             if (initialLength <= 0)
                 initialLength = 1;
             var rope = Rope.AddRope(rotationHelper.Position, initialLength,
-                GTARopeType.ThickRope, initialLength, initialLength - 0.1f, true, false);
+                GTARopeType.ThickRope, initialLength, 0.1f, true, false);
 
             // Attach the two helpers.
             rope.AttachEntities(rotationHelper, Vector3.Zero, webHitHelper, Vector3.Zero, initialLength);
@@ -134,7 +156,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                 Game.DisableControlThisFrame(2, Control.ParachuteDeploy);
 
                 // Disable the jump control.
-                Game.DisableControlThisFrame(2, Control.Attack);
+                Game.DisableControlThisFrame(2, webControl);
 
                 if (rotationHelper.HasCollidedWithAnything)
                 {
@@ -146,7 +168,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                     Profile.LocalUser.Velocity = dir * rotationHelper.Velocity.Length() / 2;
                     Profile.LocalUser.Task.Skydive();
                     Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front",
-                        4.0f, -2.0f, 1150, (AnimationFlags) 40, 0.0f);
+                        4.0f, -2.0f, 1150, (AnimationFlags)40, 0.0f);
                     Profile.LocalUser.Quaternion.Normalize();
                     Audio.ReleaseSound(Audio.PlaySoundFromEntity(Profile.LocalUser,
                         "DLC_Exec_Office_Non_Player_Footstep_Mute_group_MAP"));
@@ -164,9 +186,9 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 
                 // If we release the attach control then
                 // we should start the skydive.
-                if (Game.IsDisabledControlJustReleased(2, Control.Attack))
+                if (Game.IsDisabledControlJustReleased(2, webControl))
                 {
-                    ReleaseWebToAir(-1);
+                    ReleaseWebToAir(-1, rotationHelper);
                     break;
                 }
 
@@ -212,7 +234,8 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                 // rotation helper.
                 var directionToWebHit = webHitHelper.Position - rotationHelper.Position;
                 directionToWebHit.Normalize();
-                var rotation = Maths.LookRotation(rotationHelper.Velocity, directionToWebHit);
+                var dirVel = Vector3.ProjectOnPlane(rotationHelper.Velocity, directionToWebHit);
+                var rotation = Maths.LookRotation(dirVel, directionToWebHit);
                 rotationHelper.Quaternion = rotation;
 
                 // Get the direction of input.
@@ -224,13 +247,16 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                 if (momentumBuild < 2.5f)
                     momentumBuild += Time.DeltaTime;
                 rotationHelper.ApplyForce(relativeDir * momentumBuild * 50f * Time.UnscaledDeltaTime);
-                rotationHelper.ApplyForce(Vector3.WorldDown * 9.81f * Time.UnscaledDeltaTime);
+                rotationHelper.ApplyForce(Vector3.WorldDown * 15f * Time.UnscaledDeltaTime);
 
-                var angle = Vector3.Angle(directionToWebHit, Vector3.WorldUp);
-                if (angle > 70)
+                if (checkMinAngle)
                 {
-                    ReleaseWebToAir(0);
-                    break;
+                    var angle = Vector3.Angle(directionToWebHit, Vector3.WorldUp);
+                    if (angle > 70)
+                    {
+                        ReleaseWebToAir(0, rotationHelper);
+                        break;
+                    }
                 }
 
                 // Yield the script.
@@ -246,7 +272,6 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 
             // Delete the helper props.
             rotationHelper.Delete();
-            webHitHelper.Delete();
 
             // Delete the rope.
             rope.Delete();
@@ -256,20 +281,19 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
         ///     Release the web to air.
         /// </summary>
         /// <param name="animType">The type of animation to play, 0 is default.</param>
-        private void ReleaseWebToAir(int animType)
+        /// <param name="rotationHelper"></param>
+        private void ReleaseWebToAir(int animType, Entity rotationHelper)
         {
+            var velocity = rotationHelper.Velocity;
             Profile.LocalUser.Detach();
             Profile.LocalUser.Task.ClearAll();
             Profile.LocalUser.Task.Skydive();
+            Profile.LocalUser.Velocity = velocity;
 
             switch (animType)
             {
                 case 0:
                     Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_back_to_idle",
-                        2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
-                    break;
-                case 1:
-                    Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_flip_back_to_front",
                         2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
                     break;
             }

@@ -19,5 +19,10 @@ namespace SpiderMan.Library.Extensions
         {
             return new Vector3(v.X.Denormalize(), v.Y.Denormalize(), v.Z.Denormalize());
         }
+
+        public static float ToDegrees(this float val)
+        {
+            return (float)(val * (180 / Math.PI));
+        }
     }
 }

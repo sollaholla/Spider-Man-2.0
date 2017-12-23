@@ -247,7 +247,7 @@ namespace SpiderMan
         {
             if (_initMemory) return;
             HandlingFile.Init();
-            CTimeScale.Init();
+            //CTimeScale.Init();
             _initMemory = true;
         }
     }

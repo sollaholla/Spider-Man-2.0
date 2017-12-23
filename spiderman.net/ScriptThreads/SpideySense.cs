@@ -23,6 +23,8 @@ namespace SpiderMan.ScriptThreads
 
         private void OnTick(object sender, EventArgs e)
         {
+            GameplayCamera.ClampPitch(-179, 179);
+
             if (!PlayerController.ModEnabled)
             {
                 if (!_spideySenseOn) return;

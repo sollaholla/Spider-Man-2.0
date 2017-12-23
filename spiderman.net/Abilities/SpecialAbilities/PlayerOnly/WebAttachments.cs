@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using GTA;
 using GTA.Math;
 using SpiderMan.Abilities.Types;
@@ -237,8 +238,12 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             }
         }
 
-        public static void AddAttachment(Entity entity1, Entity entity2, Rope rope)
+        public static void AddAttachment(Entity entity1, Entity entity2, Rope rope, bool checkForDuplicates = false)
         {
+            if (checkForDuplicates && 
+                _activeAttachments.Any(x => x.Entity1 == entity1 || x.Entity1 == entity2 || x.Entity2 == entity1 || x.Entity2 == entity2))
+                return;
+
             _activeAttachments.Add(new AttachmentInfo(entity1, entity2, rope));
         }
 
@@ -335,20 +340,26 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             if (!Profile.FlipAfterWebPull)
                 return;
             Profile.LocalUser.Task.ClearAllImmediately();
-            Profile.LocalUser.Velocity = Vector3.WorldUp * 15f;
             Profile.LocalUser.SetConfigFlag(60, false);
-            GameWaiter.Wait(10);
+            var t = 0.1f;
+            while (t > 0f)
+            {
+                t -= Game.LastFrameTime;
+                Profile.LocalUser.Velocity = Vector3.WorldUp * 15f;
+                Script.Yield();
+            }
             Profile.LocalUser.Task.Skydive();
-            GameWaiter.Wait(1);
             Profile.LocalUser.Task.PlayAnimation("swimming@swim", "recover_back_to_idle", 2.0f, -2.0f, 1150,
                 AnimationFlags.AllowRotation, 0.0f);
-            var t = 0.7f;
-            while (t > 0)
+            t = 0.7f;
+            while (t > 0 && Profile.LocalUser.HeightAboveGround > 1.25f)
             {
+                Profile.LocalUser.HasCollision = false;
                 t -= Time.DeltaTime;
                 Game.SetControlNormal(2, Control.ParachutePitchUpDown, -1f);
                 Script.Yield();
             }
+            Profile.LocalUser.HasCollision = true;
             WebZip.OverrideFallHeight(float.MaxValue);
         }
 

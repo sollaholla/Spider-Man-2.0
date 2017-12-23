@@ -551,7 +551,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             // Stop the upper body animation after some time, and move to
             // a falling animation.
             if (Profile.LocalUser.IsPlayingAnimation("swimming@swim", "recover_back_to_idle"))
-                if (Profile.LocalUser.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.1f)
+                if (Profile.LocalUser.GetAnimationTime("swimming@swim", "recover_back_to_idle") > 0.2f)
                     Profile.LocalUser.Task.PlayAnimation("move_fall", "fall_med",
                         2.0f, -4.0f, -1, AnimationFlags.StayInEndFrame, 0.0f);
 
@@ -632,7 +632,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
         {
             // Let's update the swimming anim for this if any.
             if (Profile.LocalUser.IsPlayingAnimation("swimming@swim", "recover_flip_back_to_front"))
-                if (Profile.LocalUser.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.175f)
+                if (Profile.LocalUser.GetAnimationTime("swimming@swim", "recover_flip_back_to_front") > 0.25f)
                     Profile.LocalUser.Task.PlayAnimation("move_fall", "fall_med",
                         2.0f, -4.0f, -1, AnimationFlags.StayInEndFrame, 0.0f);
 

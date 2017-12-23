@@ -75,11 +75,14 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
 
             // flags.
             var cancelClimb = false;
+            var idleTimer = 0f;
 
             while (!cancelClimb)
             {
                 // Override the enabled controls.
                 SetActiveControls();
+
+                GameplayCamera.ClampPitch(-90, 90);
 
                 // Rotate the wall cam.
                 //RotateCam(cam, pivot, attachmentObject, ref xRotation, ref yRotation);
@@ -91,7 +94,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                 Move( /*cam, */surfaceNormal, attachmentObject, ref camDirection, ref moveDirection, movement);
 
                 // Play the player movement animations.
-                DoMovementAnimations(attachmentObject, movement.Length());
+                DoMovementAnimations(attachmentObject, movement.Length(), ref idleTimer);
 
                 // Start a new surface ray.
                 var surfaceRay = WorldProbe.StartShapeTestRay(attachmentObject.Position + attachmentObject.UpVector,
@@ -109,6 +112,7 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                     GameWaiter.Wait(10);
                     if (Game.IsDisabledControlPressed(2, Control.Sprint))
                     {
+                        Profile.LocalUser.HasCollision = false;
                         Profile.LocalUser.IsCollisionProof = true;
                         Profile.LocalUser.SetConfigFlag(60, false);
                         Profile.LocalUser.Task.Skydive();
@@ -116,7 +120,14 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
                             2.0f, -2.0f, 1150, AnimationFlags.AllowRotation, 0.0f);
                         Profile.LocalUser.Velocity = Vector3.WorldUp * 25f;
                         WebZip.OverrideFallHeight(float.MaxValue);
-                        GameWaiter.Wait(100);
+                        var t = 0.1f;
+                        while (t > 0f)
+                        {
+                            t -= Game.LastFrameTime;
+                            Profile.LocalUser.HasCollision = false;
+                            Script.Yield();
+                        }
+                        Profile.LocalUser.HasCollision = true;
                         Profile.LocalUser.IsCollisionProof = false;
                     }
                     else
@@ -192,62 +203,90 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             Profile.LocalUser.Velocity = Profile.LocalUser.ForwardVector * force;
         }
 
-//        private void RotateCam(Camera cam, Entity pivot, Entity target, ref float vert, ref float hori)
-//        {
-//            vert -=
-//            (Game.IsControlEnabled(2, Control.LookLeftRight)
-//                ? Game.GetControlNormal(2, Control.LookLeftRight)
-//                : Game.GetDisabledControlNormal(2, Control.LookLeftRight)) * Time.UnscaledDeltaTime * 750f;
-//
-//            hori +=
-//            (Game.IsControlEnabled(2, Control.LookUpDown)
-//                ? Game.GetControlNormal(2, Control.LookUpDown)
-//                : Game.GetDisabledControlNormal(2, Control.LookUpDown)) * Time.UnscaledDeltaTime * 750f;
-//
-//            hori = Maths.Clamp(hori, 5f, 89f);
-//
-//            var vertRot = Maths.AngleAxis(vert, target.UpVector);
-//            var horiRot = Quaternion.Euler(hori, 0, 0);
-//            var rotation = vertRot /* * horiRot*/;
-//
-//            pivot.Position = target.Position;
-//            pivot.Quaternion = rotation;
-//
-//            var upDir = target.UpVector * 5f;
-//            var downDir = -pivot.UpVector * 10f;
-//            var targetCoords = pivot.Position + upDir + downDir;
-//            var ray = WorldProbe.StartShapeTestRay(pivot.Position, targetCoords, ShapeTestFlags.IntersectMap, null);
-//            var res = ray.GetResult();
-//            var ex = Vector3.Zero;
-//            var pivotDir = pivot.Position - cam.Position;
-//            cam.Rotation = Maths.LookRotation(pivotDir, target.UpVector).ToEulerAngles();
-//
-//            if (res.Hit)
-//                ex = res.EndCoords + pivotDir.Normalized * cam.NearClip * 2.1f;
-//            else ex = targetCoords;
-//
-//            cam.Position = ex;
-//        }
+        //        private void RotateCam(Camera cam, Entity pivot, Entity target, ref float vert, ref float hori)
+        //        {
+        //            vert -=
+        //            (Game.IsControlEnabled(2, Control.LookLeftRight)
+        //                ? Game.GetControlNormal(2, Control.LookLeftRight)
+        //                : Game.GetDisabledControlNormal(2, Control.LookLeftRight)) * Time.UnscaledDeltaTime * 750f;
+        //
+        //            hori +=
+        //            (Game.IsControlEnabled(2, Control.LookUpDown)
+        //                ? Game.GetControlNormal(2, Control.LookUpDown)
+        //                : Game.GetDisabledControlNormal(2, Control.LookUpDown)) * Time.UnscaledDeltaTime * 750f;
+        //
+        //            hori = Maths.Clamp(hori, 5f, 89f);
+        //
+        //            var vertRot = Maths.AngleAxis(vert, target.UpVector);
+        //            var horiRot = Quaternion.Euler(hori, 0, 0);
+        //            var rotation = vertRot /* * horiRot*/;
+        //
+        //            pivot.Position = target.Position;
+        //            pivot.Quaternion = rotation;
+        //
+        //            var upDir = target.UpVector * 5f;
+        //            var downDir = -pivot.UpVector * 10f;
+        //            var targetCoords = pivot.Position + upDir + downDir;
+        //            var ray = WorldProbe.StartShapeTestRay(pivot.Position, targetCoords, ShapeTestFlags.IntersectMap, null);
+        //            var res = ray.GetResult();
+        //            var ex = Vector3.Zero;
+        //            var pivotDir = pivot.Position - cam.Position;
+        //            cam.Rotation = Maths.LookRotation(pivotDir, target.UpVector).ToEulerAngles();
+        //
+        //            if (res.Hit)
+        //                ex = res.EndCoords + pivotDir.Normalized * cam.NearClip * 2.1f;
+        //            else ex = targetCoords;
+        //
+        //            cam.Position = ex;
+        //        }
 
-        private void DoMovementAnimations(Prop attachmentObject, float speed)
+        private void DoMovementAnimations(Prop attachmentObject, float speed, ref float idleTimer)
         {
             if (speed > 0f)
+            {
+                idleTimer = 0f;
                 if (!Game.IsControlPressed(2, Control.Sprint))
+                {
                     PlayAnim(attachmentObject, "laddersbase", "climb_up", -90, 0.25f);
+                }
                 else
+                {
                     PlayAnim(attachmentObject, "move_m@brave", "run", 0, 1);
+                }
+            }
             else if (Profile.LocalUser.IsPlayingAnimation("laddersbase", "climb_up"))
+            {
                 PlayAnim(attachmentObject, "laddersbase", "base_left_hand_up", -90, 0.25f);
+            }
             else if (Profile.LocalUser.IsPlayingAnimation("move_m@brave", "run"))
+            {
                 PlayAnim(attachmentObject, "move_crouch_proto", "idle_intro", 0, 1);
+            }
+            else
+            {
+                idleTimer += Time.DeltaTime;
+
+                var dot = Vector3.Dot(attachmentObject.ForwardVector, Vector3.WorldUp);
+
+                if (!(idleTimer >= 4.5f) || !(dot > 0.7f)) return;
+
+                if (Profile.LocalUser.IsPlayingAnimation("laddersbase", "base_left_hand_up"))
+                {
+                    PlayAnim(attachmentObject, "nm", "hang_on_ranger", -90, 0.8f, 90f);
+                }
+                else if (Profile.LocalUser.IsPlayingAnimation("move_crouch_proto", "idle_intro"))
+                {
+                    PlayAnim(attachmentObject, "amb@lo_res_idles@", "lying_face_up_lo_res_base", 0, 1, 0f, 180f);
+                }
+            }
         }
 
         private void PlayAnim(Prop attachmentObject, string animationDict, string animationName, float xAngle,
-            float zOffset)
+            float zOffset, float yAngle = 0f, float zAngle = 0f)
         {
             if (!Profile.LocalUser.IsPlayingAnimation(animationDict, animationName))
             {
-                ReAttach(attachmentObject, xAngle, zOffset);
+                ReAttach(attachmentObject, xAngle, zOffset, yAngle, zAngle);
 
                 Profile.LocalUser.Task.PlayAnimation(animationDict, animationName, 8.0f, -1, AnimationFlags.Loop);
 
@@ -261,12 +300,12 @@ namespace SpiderMan.Abilities.SpecialAbilities.PlayerOnly
             }
         }
 
-        private void ReAttach(Prop attachmentObject, float xAngle, float zOffset)
+        private void ReAttach(Prop attachmentObject, float xAngle, float zOffset, float yAngle = 0f, float zAngle = 0f)
         {
             Profile.LocalUser.Detach();
             Profile.LocalUser.AttachToEntity(
                 attachmentObject, 0, new Vector3(0, 0, zOffset),
-                new Vector3(xAngle, 0, 0), false, false, true, 0, true);
+                new Vector3(xAngle, yAngle, zAngle), false, false, true, 0, true);
         }
 
         private static void SetActiveControls()
